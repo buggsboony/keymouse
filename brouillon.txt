@@ -1,0 +1,27 @@
+e
+Key.cmd pressed
+Key.cmd release
+Key.cmd pressed
+Key.cmd release
+Key.alt pressed
+Key.alt release
+Key.alt pressed
+Key.alt release
+Key.ctrl_r pressed
+Key.ctrl_r release
+Key.left pressed
+Key.left release
+Key.up pressed
+Key.up release
+Key.down pressed
+Key.down release
+Key.right pressed
+Key.right release
+'1' pressed
+'1' release
+'2' pressed
+'2' release
+'3' pressed
+'3' release
+Key.esc pressed
+Key.esc release
