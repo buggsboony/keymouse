@@ -3,7 +3,12 @@ import sys
 from threading import Thread
 import time
 
-from pynput.keyboard import Key, Listener
+#from os.path import expanduser
+import os
+import json
+
+
+from pynput.keyboard import Key, KeyCode, Listener
 from pynput.keyboard import Controller as KeyboardController
 from pynput.mouse import Button, Controller as MouseController
 #pip install pynput 
@@ -44,11 +49,47 @@ key_mouse_state_2=''
 key_mouse_state_3=''
 
 #variables params or const: 
-verboz=True
+verboz=False
 pas=1 #step pixel mouse
 uspeed_max=200 #depends on your CPU.. suggest: uspeed=1700 for i7   ,   uspeed=900 for i3
 uspeed_slow=2801
-detectRepeatValue=3000
+
+#Configuration and app
+AppCodeName="keymouse"
+configBaseName=AppCodeName.lower()+".json"
+configFullFileName=None
+
+# Convert a Pynput key to integer keycode
+def getKeyCode(pynputKey):
+   try:
+        key_code = pynputKey.vk
+   except AttributeError:
+        key_code = pynputKey.value.vk
+   return key_code 
+# Convert  from integer or char to pynput.keyboar.KeyCode
+def fromKeyCode(int_or_char):
+  if(  type(int_or_char) is int ):
+      vkx = KeyCode.from_vk(int_or_char)
+  else:
+      vkx = KeyCode.from_char(int_or_char)
+  return vkx
+
+
+
+defaultConfig ={"freq_max":uspeed_max  , "freq_min":uspeed_slow 
+,"vk1":getKeyCode(Key.cmd)
+,"vk2":getKeyCode(Key.ctrl)
+,"vk_speed":getKeyCode(Key.alt)
+,"vk_up":getKeyCode(Key.up)
+,"vk_left":getKeyCode(Key.left)
+,"vk_down":getKeyCode(Key.down)
+,"vk_right":getKeyCode(Key.right)
+,"vk_mouse_left":getKeyCode(Key.ctrl_r)
+,"vk_use_numpad":True
+,"vk_mouse_1":getKeyCode(Key.end)
+,"vk_mouse_2":'2'
+,"vk_mouse_3":'3'
+}
 
 
 #Variables - core
@@ -64,7 +105,6 @@ allowPropagation=True
 #******************  Functions 
 def usleep(microsec):
     time.sleep(microsec/1000000.0)
-
 
 
 #********************************* Thread Job 
@@ -206,8 +246,6 @@ def mouseActions(key,pressed_released):
             else:
                 mouse.release(Button.left)      #print('Oura release button with Ctrl_r')
 
-
-
 def keyboardPropagate(key,pressed_released):   
     global keyboard, allowPropagation
     if( not allowPropagation):
@@ -217,6 +255,79 @@ def keyboardPropagate(key,pressed_released):
         keyboard.press(key)
     if(pressed_released=='release'):
         keyboard.release(key)
+
+
+def writeTextFile(filename, content):
+    fobj=open(filename,"w")
+    fobj.writelines(content)
+    fobj.close()
+
+
+def readTextFile(filename):
+    fobj=open(filename,"r")
+    content= fobj.read() #Read Whole File to single string
+    # fobj.readlines() renvoie un tableau de strings
+    fobj.close()	
+    return content
+
+
+
+     
+def readOrCreateConfig():
+    global defaultConfig, configBaseName,configFullFileName
+    homeDir= os.path.expanduser("~")
+    configFullFileName = homeDir + os.sep + configBaseName    
+    if( not os.path.exists(configFullFileName) ):
+        jsonStr=json.dumps(defaultConfig,indent=4,sort_keys=True)
+        print("Config file will be created : '"+configFullFileName+"'")
+        writeTextFile(configFullFileName,jsonStr)#create file
+    #read config file now
+    jsonStr=readTextFile(configFullFileName)
+    config=json.loads(jsonStr)
+    return config
+
+
+def applyConfig(config):
+    #apply config keys
+    global vk1,vk2 ,vk_speed,vk_use_numpad, uspeed_slow,uspeed_max , vk_up, vk_left, vk_down, vk_right,vk_mouse_left,vk_mouse_1,vk_mouse_2, vk_mouse_3
+    #speeds
+    uspeed_max=config["freq_max"]
+    uspeed_slow=config["freq_min"]    
+    #allow numpad for mouse buttons
+    vk_use_numpad=config["vk_use_numpad"]
+    #vkeys
+    vk1= fromKeyCode(config["vk1"])
+    vk2= fromKeyCode(config["vk2"])
+    vk_speed= fromKeyCode(config["vk_speed"])
+    vk_up=fromKeyCode(config["vk_up"])
+    vk_left=fromKeyCode(config["vk_left"])
+    vk_down=fromKeyCode(config["vk_down"])
+    vk_right=fromKeyCode(config["vk_right"])
+    vk_mouse_left=fromKeyCode(config["vk_mouse_left"])
+    vk_mouse_1=fromKeyCode(config["vk_mouse_1"])
+    vk_mouse_2=fromKeyCode(config["vk_mouse_2"])
+    vk_mouse_3=fromKeyCode(config["vk_mouse_3"])
+
+#*********************************  Entry Point **********************
+
+help_text = """ 
+-v, --verbose  #More informations
+-h, --help  #Displays this help
+"""
+
+#read arguments passed , call with no argument => sys.argv==1
+for i in range(0, len(sys.argv) ):
+    arg = sys.argv[i]
+    if(  (arg=="-v") or (arg =="--verbose") ):
+        verboz=True   
+    if(  (arg=="-h") or (arg =="--help") ):
+        print(help_text)
+        os.exit()
+
+
+
+#create config if none exists
+config = readOrCreateConfig()
 
 
 
