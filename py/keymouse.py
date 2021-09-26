@@ -1,13 +1,15 @@
 #!/bin/env python
+import sys
 from threading import Thread
 import time
 
-from pynput.keyboard import Key, Listener
-from pynput.mouse import Button, Controller
+from pynput.keyboard import Key, Listener as KeyboardController
+from pynput.mouse import Button, Controller as MouseController
 #pip install pynput 
 #https://pynput.readthedocs.io/en/latest/mouse.html
 
-mouse = Controller()
+keyboard=KeyboardController()
+mouse = MouseController()
 
 #put your keys here
 vk2=Key.ctrl #Ctrl
@@ -25,8 +27,8 @@ vk_mouse_2='2'
 vk_mouse_3='3'
 
 #Controller keys states
-key_state_vk1=''
-key_state_vk2=''
+key_state_vk1=''  #Controller 1
+key_state_vk2=''  #Controller 2
 key_state_vkSpeed=''
 
 #Direction keys states
@@ -46,11 +48,12 @@ uspeed_slow=2001
 detectRepeatValue=3000
 
 
-#Variable 
+#Variables - core
 keyRepeatValue=dict() #array assoc
 keyRepeatValue[vk_right]=False
 elapsedKeyTime=0
-
+gl_listener= None #global listener
+grabing = False
 
 
 #******************  Functions 
@@ -63,10 +66,13 @@ def usleep(microsec):
 def job(arg):
     global uspeed_max,uspeed_slow,pas,key_state_vkSpeed, key_state_vk1, key_state_vk2, key_state_up, key_state_right, key_state_left, key_state_down    
     global key_mouse_state_left, key_mouse_state_1,key_mouse_state_2,key_mouse_state_3
+    global grabing, gl_listener
     while(True):
         #print('JOB: ',)
         changes=False
-        if( (key_state_vk1==1) and (key_state_vk1==1)  ):                    
+        if( (key_state_vk1==1) and (key_state_vk2==1)  ): 
+            grabing=True               
+            print('GRABING = YES    +++++++++++')                          
             mx=mouse.position[0]
             my=mouse.position[1]            
             if(key_state_up==1):
@@ -83,7 +89,14 @@ def job(arg):
                 changes=True             
             if(changes):
                 mouse.position = (mx, my)  #update cursor position
-                
+        else :
+            grabing = False
+            print('GRABING = NO    ==============================')
+        
+        #if(gl_listener is not None):
+           # gl_listener.suppress=grabing #Update Listener grabing behaviour
+        
+
         if( keyRepeatValue[vk_right] ): #start to count
             elapsedKeyTime+=1
             #print("keyrepeat val RIGHT=", elapsedKeyTime)
@@ -165,11 +178,15 @@ def updateKeyStates(key, down_up):
 
 def mouseActions(key,pressed_released):
     global vk_mouse_left,vk_mouse_1, vk_mouse_2, vk_mouse_3 
-           
+    global keyboard
     #global key_mouse_state_left, key_mouse_state_1,key_mouse_state_2,key_mouse_state_3
     if( key == vk_mouse_left):
        if(pressed_released=='pressed'):
             mouse.press(Button.left)        #print('Oura down button with Ctrl_r')    
+            # Press and release space
+            keyboard.press(Key.space)
+            keyboard.release(Key.space)
+            sys.exit
        else:
             mouse.release(Button.left)      #print('Oura release button with Ctrl_r')
     if( keyIsChar(key, vk_mouse_1) ):
@@ -198,6 +215,7 @@ t.start()
 with Listener(
         on_press=on_press,
         on_release=on_release,
-        suppress= True #use Suppress = true to prevent event propagation
+        suppress= grabing #use Suppress = true to prevent event propagation (Trying to change suppress dynamically)
         ) as listener:
+    gl_listener=listener
     listener.join()
