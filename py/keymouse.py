@@ -9,7 +9,7 @@ from pynput.mouse import Button, Controller as MouseController
 #pip install pynput 
 #https://pynput.readthedocs.io/en/latest/mouse.html
 
-#keyboard=KeyboardController()
+keyboard=KeyboardController()
 mouse = MouseController()
 
 #put your keys here
@@ -23,7 +23,8 @@ vk_down=Key.down
 vk_right=Key.right
 
 vk_mouse_left=Key.ctrl_r #Ctrl_r default for click, for right click, might use thre dedicated button
-vk_mouse_1='1'   #can use num pad 1, 2 , 3 to control mouse buttons
+vk_use_numpad=True
+vk_mouse_1=Key.end   #can use num pad 1, 2 , 3 to control mouse buttons
 vk_mouse_2='2'
 vk_mouse_3='3'
 
@@ -43,9 +44,10 @@ key_mouse_state_2=''
 key_mouse_state_3=''
 
 #variables params or const: 
+verboz=True
 pas=1 #step pixel mouse
 uspeed_max=200 #depends on your CPU.. suggest: uspeed=1700 for i7   ,   uspeed=900 for i3
-uspeed_slow=2001
+uspeed_slow=2801
 detectRepeatValue=3000
 
 
@@ -54,7 +56,8 @@ keyRepeatValue=dict() #array assoc
 keyRepeatValue[vk_right]=False
 elapsedKeyTime=0
 gl_listener= None #global listener
-grabbing = False
+recording = False
+exitApp = False
 allowPropagation=True
 
 
@@ -68,12 +71,16 @@ def usleep(microsec):
 def job(arg):
     global uspeed_max,uspeed_slow,pas,key_state_vkSpeed, key_state_vk1, key_state_vk2, key_state_up, key_state_right, key_state_left, key_state_down    
     global key_mouse_state_left, key_mouse_state_1,key_mouse_state_2,key_mouse_state_3
-    global grabbing, gl_listener
+    global recording, exitApp
     while(True):
         #print('JOB: ',)
         changes=False
-        if( (key_state_vk1==1) and (key_state_vk2==1)  ): 
-            grabing=True
+        if( (key_state_vk1==1) and (key_state_vk2==1) and (key_state_left==1) and (key_state_down==1) and (key_state_right==1)  ):     
+            print('Stop thread ') 
+            exitApp=True  #Exit app
+            sys.exit()  #exit thread 
+        if( (key_state_vk1==1) and (key_state_vk2==1)  ):                  
+            recording=True
             allowPropagation=False                                           
             mx=mouse.position[0]
             my=mouse.position[1]            
@@ -92,7 +99,7 @@ def job(arg):
             if(changes):
                 mouse.position = (mx, my)  #update cursor position
         else :
-            grabing = False
+            recording = False
             allowPropagation=True
         
         if(key_state_vkSpeed==1):
@@ -122,17 +129,20 @@ def keyIsChar(key, char_val):
 
 
 def on_press(key):
-    print('{0} pressed'.format(key))
+    global verboz
+    if(verboz):
+        print('{0} pressed'.format(key))
     updateKeyStates(key,1)
-    #mouseActions(key,'pressed')
-    #keyboardPropagate(key,'release')
-    print( (key_state_vk1) )
+    mouseActions(key,'pressed')
+    #keyboardPropagate(key,'release') #Does not work !   
     
 def on_release(key):
+    global verboz
     updateKeyStates(key,0)
-    # mouseActions(key,'release')
-    # keyboardPropagate(key,'release')
-    print(vars(key))
+    mouseActions(key,'release')
+    #keyboardPropagate(key,'release') #Does not work. 
+    if(verboz):
+        print(vars(key))
     # if( hasattr(key, 'char') and hasattr(key, 'vk') ):
     #     if( (key.vk is None) and key.char =='2'  ):
     #         # Stop listener
@@ -146,7 +156,10 @@ def updateKeyStates(key, down_up):
     global vk_speed,key_state_vkSpeed, vk_right, key_state_vk1, key_state_vk2, key_state_up, key_state_right, key_state_left, key_state_down
     global vk_mouse_left,vk_mouse_1, vk_mouse_2, vk_mouse_3
     global key_mouse_state_left, key_mouse_state_1,key_mouse_state_2,key_mouse_state_3
-
+    global exitApp
+    if(exitApp):
+        print('Exit app now!')
+        sys.exit() #Exit main thread
     if( key == vk_speed):
        key_state_vkSpeed=down_up  #store speed key state
     if( key == vk1):
@@ -172,29 +185,26 @@ def updateKeyStates(key, down_up):
 #  mouse.press(Button.left)
 # mouse.release(Button.left)
 
+
 def mouseActions(key,pressed_released):
     global vk_mouse_left,vk_mouse_1, vk_mouse_2, vk_mouse_3 
-    global keyboard
+    global recording,vk_use_numpad
+    #print('is recording? ', recording)
+    if(not recording):        
+        return None #No action with mouse
     #global key_mouse_state_left, key_mouse_state_1,key_mouse_state_2,key_mouse_state_3
     if( key == vk_mouse_left):
        if(pressed_released=='pressed'):
             mouse.press(Button.left)        #print('Oura down button with Ctrl_r')                          
        else:
             mouse.release(Button.left)      #print('Oura release button with Ctrl_r')
-    if( keyIsChar(key, vk_mouse_1) ):
-        if(pressed_released=='pressed'):
-            mouse.press(Button.left)        #print('Oura down button with Ctrl_r')    
-        else:
-            mouse.release(Button.left)      #print('Oura release button with Ctrl_r')
-
-    # global key_state_vk1, key_state_vk2, key_state_up, key_state_right, key_state_left, key_state_down
-    # print('vk1stat= ',key_state_vk1, ' vk2stat= ',key_state_vk2 )
-    # if( (key_state_vk1 == 1) and ( key_state_vk2 == 1)  ):
-    #    if( (key_state_up == 1) ):
-    #         print('Col Up')
-    # else :
-    #    print ('Control off')
-
+    
+    if(vk_use_numpad):
+        if( (key==vk_mouse_1) or keyIsChar(key, vk_mouse_1) ):
+            if(pressed_released=='pressed'):
+                mouse.press(Button.left)        #print('Oura down button with Ctrl_r')    
+            else:
+                mouse.release(Button.left)      #print('Oura release button with Ctrl_r')
 
 
 
