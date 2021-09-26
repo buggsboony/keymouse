@@ -3,12 +3,13 @@ import sys
 from threading import Thread
 import time
 
-from pynput.keyboard import Key, Listener as KeyboardController
+from pynput.keyboard import Key, Listener
+from pynput.keyboard import Controller as KeyboardController
 from pynput.mouse import Button, Controller as MouseController
 #pip install pynput 
 #https://pynput.readthedocs.io/en/latest/mouse.html
 
-keyboard=KeyboardController()
+#keyboard=KeyboardController()
 mouse = MouseController()
 
 #put your keys here
@@ -53,7 +54,8 @@ keyRepeatValue=dict() #array assoc
 keyRepeatValue[vk_right]=False
 elapsedKeyTime=0
 gl_listener= None #global listener
-grabing = False
+grabbing = False
+allowPropagation=True
 
 
 #******************  Functions 
@@ -66,13 +68,13 @@ def usleep(microsec):
 def job(arg):
     global uspeed_max,uspeed_slow,pas,key_state_vkSpeed, key_state_vk1, key_state_vk2, key_state_up, key_state_right, key_state_left, key_state_down    
     global key_mouse_state_left, key_mouse_state_1,key_mouse_state_2,key_mouse_state_3
-    global grabing, gl_listener
+    global grabbing, gl_listener
     while(True):
         #print('JOB: ',)
         changes=False
         if( (key_state_vk1==1) and (key_state_vk2==1)  ): 
-            grabing=True               
-            print('GRABING = YES    +++++++++++')                          
+            grabing=True
+            allowPropagation=False                                           
             mx=mouse.position[0]
             my=mouse.position[1]            
             if(key_state_up==1):
@@ -91,22 +93,14 @@ def job(arg):
                 mouse.position = (mx, my)  #update cursor position
         else :
             grabing = False
-            print('GRABING = NO    ==============================')
+            allowPropagation=True
         
-        #if(gl_listener is not None):
-           # gl_listener.suppress=grabing #Update Listener grabing behaviour
-        
-
-        if( keyRepeatValue[vk_right] ): #start to count
-            elapsedKeyTime+=1
-            #print("keyrepeat val RIGHT=", elapsedKeyTime)
-
         if(key_state_vkSpeed==1):
             uspeed=uspeed_max
         else:
             uspeed=uspeed_slow
                          
-
+        #print('uspeed:',uspeed)
         usleep(uspeed) #cpu sleep 200µsec
     
 
@@ -130,13 +124,15 @@ def keyIsChar(key, char_val):
 def on_press(key):
     print('{0} pressed'.format(key))
     updateKeyStates(key,1)
-    mouseActions(key,'pressed')
-    #print( (key_state_vk1) )
+    #mouseActions(key,'pressed')
+    #keyboardPropagate(key,'release')
+    print( (key_state_vk1) )
     
 def on_release(key):
     updateKeyStates(key,0)
-    mouseActions(key,'release')
-    #print(vars(key))
+    # mouseActions(key,'release')
+    # keyboardPropagate(key,'release')
+    print(vars(key))
     # if( hasattr(key, 'char') and hasattr(key, 'vk') ):
     #     if( (key.vk is None) and key.char =='2'  ):
     #         # Stop listener
@@ -182,11 +178,7 @@ def mouseActions(key,pressed_released):
     #global key_mouse_state_left, key_mouse_state_1,key_mouse_state_2,key_mouse_state_3
     if( key == vk_mouse_left):
        if(pressed_released=='pressed'):
-            mouse.press(Button.left)        #print('Oura down button with Ctrl_r')    
-            # Press and release space
-            keyboard.press(Key.space)
-            keyboard.release(Key.space)
-            sys.exit
+            mouse.press(Button.left)        #print('Oura down button with Ctrl_r')                          
        else:
             mouse.release(Button.left)      #print('Oura release button with Ctrl_r')
     if( keyIsChar(key, vk_mouse_1) ):
@@ -205,6 +197,19 @@ def mouseActions(key,pressed_released):
 
 
 
+
+def keyboardPropagate(key,pressed_released):   
+    global keyboard, allowPropagation
+    if( not allowPropagation):
+        return "nothing to send"
+        
+    if(pressed_released=='pressed'):
+        keyboard.press(key)
+    if(pressed_released=='release'):
+        keyboard.release(key)
+
+
+
 #Start thread
 t=Thread(target=job, args=('Go',) )
 t.start()
@@ -215,7 +220,6 @@ t.start()
 with Listener(
         on_press=on_press,
         on_release=on_release,
-        suppress= grabing #use Suppress = true to prevent event propagation (Trying to change suppress dynamically)
+        suppress= False #use Suppress = true to prevent event propagation (Trying to change suppress dynamically)
         ) as listener:
-    gl_listener=listener
     listener.join()
