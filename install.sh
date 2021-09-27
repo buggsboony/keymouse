@@ -13,6 +13,6 @@ echo "Set executable rights for : \"$realpath\" "
 chmod +x $realpath
 
 echo Symbolic link creation
-echo "/usr/bin/$what" -> "$realpath"
+echo "/usr/bin/$what to $realpath"
 sudo ln -s "$realpath" /usr/bin/$what
 echo "done."
