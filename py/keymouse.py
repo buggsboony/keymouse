@@ -279,8 +279,8 @@ def readOrCreateConfig():
     configFullFileName = homeDir + os.sep + configBaseName    
     if( not os.path.exists(configFullFileName) ):
         jsonStr=json.dumps(defaultConfig,indent=4,sort_keys=True)
-        print("Config file will be created : '"+configFullFileName+"'")
         writeTextFile(configFullFileName,jsonStr)#create file
+        print("Config file should have been created : '"+configFullFileName+"'")
     #read config file now
     jsonStr=readTextFile(configFullFileName)
     config=json.loads(jsonStr)
