@@ -8,6 +8,7 @@
             "type": "shell",
             "command": "g++",
             "args": [
+                "-lpthread",  /*référence indéfinie vers « pthread_create » */
                 "-lX11", /*référence indéfinie vers « XOpenDisplay »*/
                 "-lXtst", /*référence indéfinie vers « XTestFakeKeyEvent »*/
                  "${file}",               

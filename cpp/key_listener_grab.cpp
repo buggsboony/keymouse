@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <unistd.h>
+
+
+#include <iostream>
+using namespace std;
+
 #define XKC_COMMA 0x3A
 int main ()
 {
@@ -16,11 +21,24 @@ int main ()
     int len;
     int revert;
 
+
+
+        unsigned int    modifiers       = ControlMask | ShiftMask ;
+                        int             keycode         = XKeysymToKeycode(d,XK_A);
+                        Window          grab_window     =  root;
+                        Bool            owner_events    = False;
+                        int             pointer_mode    = GrabModeAsync;
+                        int             keyboard_mode   = GrabModeAsync;
+  modifiers= Mod2Mask;  //ATTENTION à VERNUM (Mod2Mask)
+
+
+
     XGetInputFocus (d, &curFocus, &revert);
     XSelectInput(d, curFocus, KeyPressMask|KeyReleaseMask |FocusChangeMask      );
 
     while (1)
     {
+        puts("usleep");
         usleep(1); //never be carefull enough
         XEvent ev;
         XNextEvent(d, &ev);
@@ -49,6 +67,21 @@ int main ()
                 {
                     buf[len]=0;
                     printf("String is: %s\n", buf);
+                    string s="u";
+                    if(s==buf)
+                    {                        
+                        puts("Cool now => ungrab!");
+                        XUngrabKey(d,keycode,modifiers,root);
+                    }
+                    s="g";
+                    if(s==buf)
+                    {
+                           
+                    
+                  
+                         XGrabKey(d, keycode, modifiers, root, owner_events, pointer_mode, keyboard_mode);
+                        puts("Woauwh  Grab !!! ");
+                    }
                 }
                 else
                 {

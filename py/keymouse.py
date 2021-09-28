@@ -341,6 +341,6 @@ t.start()
 with Listener(
         on_press=on_press,
         on_release=on_release,
-        suppress= False #use Suppress = true to prevent event propagation (Trying to change suppress dynamically)
+        suppress= True #use Suppress = true to prevent event propagation (Trying to change suppress dynamically)
         ) as listener:
     listener.join()
