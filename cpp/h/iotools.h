@@ -1583,6 +1583,12 @@ public:
 	void create()
 	{
 		FILE * f;
+		// //Check if path exists :
+		// string parentDir = getDirectory(filename);
+		// if(!directoryExists(parentDir))
+		// {
+		// 	createDirectory(parentDir, true); //ensure directories exist
+		// }
 		f=fopen(filename.c_str(),"w+");
 		fclose(f);
 	}
@@ -1634,6 +1640,10 @@ public:
 
 
 
+void msSleep(int ms) {
+usleep(ms*1000); //convert to microseconds
+return;
+}
 
 void sleepMs(int ms) {
 usleep(ms*1000); //convert to microseconds

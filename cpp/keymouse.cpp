@@ -12,24 +12,42 @@ using namespace std;
 
 
 #include "keymouse_h.cpp"
-string appTitle="keyMouse";
-string configFileBaseName ="keymouse_compiled.json";
 
 
 int main ()
 {
 
 ////-------------  Récupération de la config  ------------------ 
-string configFullName=getHomeDir();
-configFullName.append("/");
-configFullName.append(configFileBaseName);
- string configStr = getFileContent(configFileBaseName); 
- if(configStr.length()==0)
- {
-   cout<<"Oups! config prob";
-   //printlnErr("Oups fail");
-   //return 3;
- }
+
+//lire et écrire un fichier de conf
+ 
+// string configFullPath=getHomeDir(); configFullPath.append("/.config/"+appCodeName+"/"); 
+// //createDirectory(configFullPath, true); //ensure directories exist
+// string configFullName = configFullPath.append(configFileBaseName);
+
+
+ConfigFile cfile(configFileBaseName); //Config file is next to executable
+if( cfile.read() == 0) 
+{
+    cout<<"Read!"<<endl;
+    speed_boost=cfile.getiVar("speed_boost");//le port server du client	
+    speed_slow=cfile.getiVar("speed_slow");//le port server du client	        
+}else
+{     cout<<"Write!"<<endl;
+    cfile.writeiVar(speed_slow,"speed_slow"); 
+    cfile.writeiVar(speed_boost,"speed_boost"); 
+    printCoolLn("Nouveau fichier config de config créé : '"+configFileBaseName+"'");
+}
+
+//init application here
+initApp();
+puts("done");
+return 1;
+
+
+
+
+
 
 
  //starting Pipe: 

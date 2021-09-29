@@ -1,11 +1,23 @@
 #include "h/tools.h" 
+#include "h/xtools.h"
+#include "h/iotools.h"
 
+string appCodeName="keymouse";
+string appTitle="keyMouse";
+string configFileBaseName ="keymouse.conf";
 
 pthread_t tid;
 bool canExit = false;
 
-int freq_min=200, freq_max=6200;
-int freq=2000;
+
+int speed_boost=200, speed_slow=6200;
+int freq=speed_slow;
+ 
+void initApp()
+{
+    freq=speed_slow; //default freq is speed slow
+
+}//initApp
 
 
 //Thread Job
