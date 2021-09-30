@@ -1,4 +1,12 @@
-# keymouse
+# keymouse (c++)
+./keymouse --printkey #enter in loop, and prints key codes (Usefull to set keycodes in keymouse.conf)
+
+
+
+
+
+
+# keymouse (python script)
 Use your keyboard to control mouse pointer and events
 
 How to use:

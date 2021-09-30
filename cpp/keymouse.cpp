@@ -14,9 +14,21 @@ using namespace std;
 #include "keymouse_h.cpp"
 
 
-int main ()
+
+
+
+int main (int argc, char **argv)
 {
 
+    for (size_t i = 0; i < argc; i++)
+    {
+        string arg=argv[i];
+        if(arg=="--printkey")
+        {
+            printKeyMode=true;
+        }
+    }
+    
 ////-------------  Récupération de la config  ------------------ 
 
 //lire et écrire un fichier de conf
@@ -29,11 +41,14 @@ int main ()
 ConfigFile cfile(configFileBaseName); //Config file is next to executable
 if( cfile.read() == 0) 
 {
-    cout<<"Read!"<<endl;
+    //cout<<"Read!"<<endl;
     speed_boost=cfile.getiVar("speed_boost");//le port server du client	
-    speed_slow=cfile.getiVar("speed_slow");//le port server du client	        
+    speed_slow=cfile.getiVar("speed_slow");//le port server du client	      
+    controller_keys=cfile.getVar("controller_keys");
 }else
-{     cout<<"Write!"<<endl;
+{  
+    //cout<<"Write!"<<endl;
+    cfile.writeVar("controller_keys",controller_keys);
     cfile.writeiVar(speed_slow,"speed_slow"); 
     cfile.writeiVar(speed_boost,"speed_boost"); 
     printCoolLn("Nouveau fichier config de config créé : '"+configFileBaseName+"'");
@@ -41,14 +56,8 @@ if( cfile.read() == 0)
 
 //init application here
 initApp();
-puts("done");
-return 1;
-
-
-
-
-
-
+  
+//puts("abort"); return 32;
 
  //starting Pipe: 
  int err = pthread_create(&tid, NULL, &_keyStateLoop, NULL);
@@ -79,7 +88,7 @@ return 1;
 
 
     XGetInputFocus (d, &curFocus, &revert);
-    XSelectInput(d, curFocus, KeyPressMask|KeyReleaseMask |FocusChangeMask      );
+    XSelectInput(d, curFocus, KeyPressMask | KeyReleaseMask |FocusChangeMask      );
 
     while (1)
     {
@@ -101,21 +110,45 @@ return 1;
                 //XGrabKey(d, XKC_COMMA, 0, curFocus, True, GrabModeAsync, GrabModeAsync);
                 XSelectInput(d, curFocus, KeyPressMask|KeyReleaseMask|FocusChangeMask);
                 break;
-
-            case KeyPress:
-            //
-
-                printf ("Got key!\n");
+            
+            case KeyRelease: 
                 len = XLookupString(&ev.xkey, buf, 16, &ks, &comp);
-                if (len > 0 && isprint(buf[0]))
+                if(printKeyMode)
                 {
-                    buf[len]=0;
-                    printf("String is: %s\n", buf);
+                    printf ("KeyRelease :\n");
+                   
+                    printf ("KeyCode is: %d ---- ", (int)ks);
+                    if (len > 0 && isprint(buf[0]))
+                    {
+                        buf[len]=0;
+                        printf("String is: %s\n", buf);
+                    }                    
+                }else
+                {
+                    int keycode=(int)ks;
+                    updateKeyState(keycode, 0);
                 }
+                break;
+
+            case KeyPress:            
+                len = XLookupString(&ev.xkey, buf, 16, &ks, &comp);
+                if(printKeyMode)
+                {
+                    printf ("KeyPress :\n");
+                    
+                    printf ("KeyCode is: %d ---- ", (int)ks);
+                    if (len > 0 && isprint(buf[0]))
+                    {
+                        buf[len]=0;
+                        printf("String is: %s\n", buf);
+                    }                    
+                }//printKeyMode
                 else
-                {
-                    printf ("Key is: %d\n", (int)ks);
+                { //GameMode (keymouse job)                
+                    int keycode=(int)ks;
+                    updateKeyState(keycode, 1);
                 }
+                
         }
 
     }
