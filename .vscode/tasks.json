@@ -1,29 +1,44 @@
 {
-    // See https://go.microsoft.com/fwlink/?LinkId=733558
-    // for the documentation about the tasks.json format
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "g++",
             "type": "shell",
             "command": "g++",
             "args": [
-                "-lpthread",  /*référence indéfinie vers « pthread_create » */
-                "-lX11", /*référence indéfinie vers « XOpenDisplay »*/
-                "-lXtst", /*référence indéfinie vers « XTestFakeKeyEvent »*/
-                 "${file}",               
-                 "-o",
-                 "${relativeFileDirname}/${fileBasenameNoExtension}"
-                        
+                "-lpthread",
+                "-lX11",
+                "-lXtst",
+                "${file}",
+                "-o",
+                "${relativeFileDirname}/${fileBasenameNoExtension}"
+                ,"-g"
             ],
             "group": "build",
-            "presentation": {
-                // Reveal the output only if unrecognized errors occur.
-          
-            },
-            // Use the standard MS compiler pattern to detect errors, warnings and infos
+            "presentation": {},
             "problemMatcher": "$msCompile"
+        },
+        {
+            "type": "cppbuild",
+            "label": "C/C++: g++ générer le fichier actif",
+            "command": "/usr/bin/g++",
+            "args": [
+                "-g",
+                "${file}",
+                "-o",
+                "${fileDirname}/${fileBasenameNoExtension}"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Tâche générée par le débogueur."
         }
     ]
- }
- 
+}
