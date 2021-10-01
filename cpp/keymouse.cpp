@@ -18,16 +18,6 @@ using namespace std;
 int main(int argc, char **argv)
 {
 
-    int x=4;
-    cout<<"hello world"<<endl;
-      cout<<"close world"<<x<<endl;
-      return 13;
-}
-
-
-int main2 (int argc, char **argv)
-{
-
     for (size_t i = 0; i < argc; i++)
     {
         string arg=argv[i];
@@ -53,10 +43,23 @@ if( cfile.read() == 0)
     speed_boost=cfile.getiVar("speed_boost");//le port server du client	
     speed_slow=cfile.getiVar("speed_slow");//le port server du client	      
     controller_keys=cfile.getVar("controller_keys");
+    vk_speed=cfile.getiVar("key_speed");
+    vk_up=cfile.getiVar("vk_up");
+    vk_left=cfile.getiVar("vk_left");
+    vk_down=cfile.getiVar("vk_down");
+    vk_right=cfile.getiVar("vk_right");
+
+ 
 }else
 {  
     //cout<<"Write!"<<endl;
     cfile.writeVar("controller_keys",controller_keys);
+    cfile.writeiVar(vk_speed,"key_speed"); 
+    cfile.writeiVar(vk_up,"vk_up"); 
+    cfile.writeiVar(vk_left,"vk_left"); 
+    cfile.writeiVar(vk_down,"vk_down"); 
+    cfile.writeiVar(vk_right,"vk_right"); 
+
     cfile.writeiVar(speed_slow,"speed_slow"); 
     cfile.writeiVar(speed_boost,"speed_boost"); 
     printCoolLn("Nouveau fichier config de config créé : '"+configFileBaseName+"'");
@@ -85,8 +88,8 @@ initApp();
 
 
 
-    Display* d = XOpenDisplay(NULL);
-    Window root = DefaultRootWindow(d);
+    d = XOpenDisplay(NULL);
+    rootWindow = DefaultRootWindow(d);
     Window curFocus;
     char buf[17];
     KeySym ks;
@@ -108,12 +111,12 @@ initApp();
             case FocusOut:
                 printf ("Focus changed!\n");
                 printf ("Old focus is %d\n", (int)curFocus);
-                if (curFocus != root)
+                if (curFocus != rootWindow)
                     XSelectInput(d, curFocus, 0);
                 XGetInputFocus (d, &curFocus, &revert);
                 printf ("New focus is %d\n", (int)curFocus);
                 if (curFocus == PointerRoot)
-                    curFocus = root;
+                    curFocus = rootWindow;
                 puts("XSelectInput");
                 //XGrabKey(d, XKC_COMMA, 0, curFocus, True, GrabModeAsync, GrabModeAsync);
                 XSelectInput(d, curFocus, KeyPressMask|KeyReleaseMask|FocusChangeMask);

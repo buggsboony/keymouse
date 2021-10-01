@@ -1,6 +1,7 @@
 {
 
 "workbench.colorTheme": "Gruvbox Dark Hard",
+"editor.autoClosingBrackets": "never",
 "files.associations": {
     "iostream": "cpp",
     "ostream": "cpp"
