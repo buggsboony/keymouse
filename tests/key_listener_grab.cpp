@@ -4,14 +4,51 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <unistd.h>
-
+#include <vector>
+#include <map>
 
 #include <iostream>
 using namespace std;
 
+
+//...
+
+int x_error_handler( Display* dpy, XErrorEvent* pErr )
+{
+    printf("X Error Handler called, values: %d/%lu/%d/%d/%d\n",
+        pErr->type,
+        pErr->serial,
+        pErr->error_code,
+        pErr->request_code,
+        pErr->minor_code );
+    if( pErr->request_code == 33 ){  // 33 (X_GrabKey)
+        if( pErr->error_code == BadAccess ){
+            printf("ERROR: A client attempts to grab a key/button combination already\n"
+                   "        grabbed by another client. Ignoring.\n");
+            return 0;
+        }
+    }
+//exit(1);  // exit the application for all unhandled errors.
+    return 0;
+}
+
+
+
+#define AltMask Mod1Mask
+#define AltGrMask Mod5Mask
+#define NumLockMask Mod2Mask
+#define CapsLockMask Mod3Mask
+#define MetaMask Mod4Mask
+#define WindowsMask Mod4Mask
+
+
 #define XKC_COMMA 0x3A
+
+
 int main ()
 {
+ 
+
     Display* d = XOpenDisplay(NULL);
     Window root = DefaultRootWindow(d);
     Window curFocus;
@@ -21,6 +58,9 @@ int main ()
     int len;
     int revert;
 
+
+// Early in your application
+//XSetErrorHandler( x_error_handler );
 
 
         unsigned int    modifiers       = ControlMask | ShiftMask ;
@@ -71,6 +111,7 @@ int main ()
                     if(s==buf)
                     {                        
                         puts("Cool now => ungrab!");
+                        //modifiers = AnyModifier;
                         XUngrabKey(d,keycode,modifiers,root);
                     }
                     s="g";
@@ -78,7 +119,7 @@ int main ()
                     {
                            
                     
-                  
+                  //modifiers = AnyModifier;
                          XGrabKey(d, keycode, modifiers, root, owner_events, pointer_mode, keyboard_mode);
                         puts("Woauwh  Grab !!! ");
                     }

@@ -49,32 +49,122 @@ void updateKeyState(int keycode, short state)
 }//updateKeyState
 
 
-//grab key regardeless of modifiers
-int xGrabIndependantKey(Display*d, int keycode, unsigned int window)
+
+
+ 
+/*calcul de factoriel*/
+long long fact(long long n)
+{//cas particuliers: 0! et 1!
+if((n==0)||(n==1)){return 1;}
+return n*fact(n-1);
+}
+
+// // Utilisation :  get all combinations for modiders masks
+//  vector<int> vlist={ ControlMask,ShiftMask,AltMask,NumLockMask};
+//  auto combinations = getModifierComb(vlist);
+//     for(auto m : combinations)
+//     {
+//         cout<<m.second<<endl;
+//     }
+map<int,int> getModifierComb(vector<int> vlist)
 {
-    cout<<"Grab the key "<<keycode<<endl;
-    int r;
-    unsigned int    modifiers;
+    map<int,int>results;
+        
+    long long n_count = fact(vlist.size() );
+    cout<<"ncount="<<n_count<<endl;
+    int vmem=0; int ntour=0;
+    int result=0, offset=0;
+    for(int i=0; i<n_count; i++)
+    {
+        //cout<<"i="<<i<<endl;
+        int m = i % vlist.size();
+        int v= vlist[m];
+        //cout<<"m="<<m<<" "<<"v="<<v<<endl;        
+        if(m==0) //modulo Nouveau tour
+        {        
+            //cout<<"vmem+=v["<<ntour<<"] soit "<<vlist[ntour]<<endl;
+            
+            //cout<<"ntour="<<ntour<<" vmem="<<vmem<<endl;
+            ntour++;
+            //vmem|=offset; //vmem on previous offset
+            offset = vlist[ntour-1];//get equivalent 
+            if(ntour>=vlist.size() ) 
+            {
+                ntour=1;
+                vmem|=vlist[ntour-1];
+            }
+        }         
+        result= vmem|offset | v;
+        results[result]=result;//one -> one
+        //cout<<"RESULT="<<result<<endl;
+
+    }//next
+
+    //add all 
+    result=0;
+    for(auto v :vlist)
+    {
+        result|=v;
+    }
+    //cout<<"LAST RESULT="<<result<<endl;
+    results[result]=result;    
+    return results;
+}
+
+
+
+
+//Error Handling (vital) not prevent program exit.
+int x_error_handler( Display* dpy, XErrorEvent* pErr )
+{
+    printf("X Error Handler called, values: %d/%lu/%d/%d/%d\n",
+        pErr->type,
+        pErr->serial,
+        pErr->error_code,
+        pErr->request_code,
+        pErr->minor_code );
+    if( pErr->request_code == 33 ){  // 33 (X_GrabKey)
+        if( pErr->error_code == BadAccess ){
+            printf("ERROR: A client attempts to grab a key/button combination already\n"
+                   "        grabbed by another client. Ignoring.\n");
+            return 0;
+        }
+    }
+//exit(1);  // exit the application for all unhandled errors.
+    return 0;
+}
+
+
+//vector<int> modifiersList={ ControlMask,ShiftMask,AltMask,NumLockMask,CapsLockMask,MetaMask};  //CapsLock and Meta not working
+vector<int> modifiersList={ ControlMask,ShiftMask,AltMask,NumLockMask};
+//grab key regardeless of modifiers
+int xGrabIndependantKey(Display*d, int keycode, unsigned int window,string grab_or_ungrab="grab")
+{    
+    int r; bool silent = true;
+    unsigned int    modifiers;           
+    XUngrabKey(d, keycode, AnyModifier,window);    
+    map<int,int> allModifiers = getModifierComb(modifiersList);
+    allModifiers[0]=0;//Add none modifiers
     
-    // modifiers = NumLockMask; //ControlMask | ShiftMask | Mod2Mask;    
-    // r=XGrabKey(d, keycode, modifiers, window, True, GrabModeAsync, GrabModeAsync);
-    // cout<<"XGrabKey + NumLockMask mod=>"<<r<<endl;
-
-     modifiers =   MetaMask ; //ControlMask | ShiftMask | Mod2Mask;    
-    // r=XGrabKey(d, keycode, modifiers, window, True, GrabModeAsync, GrabModeAsync);
-    // cout<<"XGrabKey + MetaMask  mod=>"<<r<<endl;
-
-    XUngrabKey(d, keycode, AnyModifier,window);
-
-    modifiers =  AltMask ;
-    r=XGrabKey(d, keycode, AnyModifier, window, True, GrabModeAsync, GrabModeAsync);
-    cout<<"XGrabKey + AltMask  mod=>"<<r<<endl;  
-    // r=XGrabKey(d, keycode, modifiers, window, True, GrabModeAsync, GrabModeAsync);
-    // cout<<"XGrabKey + ControlMask mod=>"<<r<<endl;
-
-    // modifiers=0;
-    // r=XGrabKey(d, keycode, modifiers, window, True, GrabModeAsync, GrabModeAsync);
-    // cout<<"XGrabKey 0 mod=>"<<r<<endl;
+    if(grab_or_ungrab=="grab")
+    {
+        if(!silent) cout<<"Grab the key "<<keycode<<endl;
+        for(auto mm : allModifiers)
+        {    
+            modifiers = mm.second;
+            r=XGrabKey(d, keycode, modifiers, window, True, GrabModeAsync, GrabModeAsync);
+            if(!silent) cout<<"XGrabKey mod"<<modifiers<<"=>"<<r<<endl;
+        }//next modifier
+    }else if(grab_or_ungrab=="ungrab")
+    {
+         if(!silent) cout<<"UnGrab the key "<<keycode<<endl;
+        for(auto mm : allModifiers)
+        {    
+            modifiers = mm.second;
+            r=XUngrabKey(d, keycode, modifiers, window);
+             if(!silent) cout<<"XUnGrabKey mod"<<modifiers<<"=>"<<r<<endl;
+        }//next modifier
+    }
    return r;
 }//grab Independant Key
 
@@ -82,19 +172,23 @@ int xGrabIndependantKey(Display*d, int keycode, unsigned int window)
 
 
 bool keysGrabbed = false;
-void grabKeys()
+void grabKeys(string grab_or_ungrab="grab")
 {
     //KeyCode kc=  XKeysymToKeycode(d,  XK_A);
-    KeyCode kc=XKC_UP;
-    xGrabIndependantKey(d, kc ,rootWindow);
-    printf("key is grabbed (%d) \n",kc );
-    sleep(1);
-    keysGrabbed=true;
+    for(auto mKstate : keystates)
+    {
+        KeyCode kc=mKstate.first;
+        xGrabIndependantKey(d, kc ,rootWindow, grab_or_ungrab);    
+        usleep(2);
+    }
+    if(grab_or_ungrab=="grab")
+        keysGrabbed=true;
+    else 
+        keysGrabbed=false;
 }
 void unGrabKeys()
-{
-    //XUngrabKey(d,keycode,modifiers,root);
-    keysGrabbed=false;
+{    
+    grabKeys("ungrab");
 }//unGrabKeys
 
 
@@ -128,6 +222,11 @@ void initApp()
     keystates[vk_right]=-1;
 
     freq=speed_slow; //default freq is speed slow   
+
+
+    //Catch X errors! 
+    XSetErrorHandler( x_error_handler );
+
 }//initApp
 
 
@@ -165,11 +264,11 @@ void *_keyStateLoop(void * arg)
         {
             //puts("All controller keys down !");
             lockGrabKeys=true;
-            if( !keysGrabbed) grabKeys();
+            if( !keysGrabbed) grabKeys();  //only once if not already grabed
         }else
         {
             lockGrabKeys=false;
-            if( keysGrabbed) unGrabKeys();
+            if( keysGrabbed) unGrabKeys(); //only once if not already ungrabbed
         }
         
         usleep(2+freq);
