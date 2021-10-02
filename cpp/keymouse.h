@@ -14,10 +14,10 @@ Window xDefaultRootWin,rootWindow; //root Window
 
 
 
-int speed_boost=200, speed_slow=6200;
+int speed_boost=200, speed_slow=2200;
 int freq=speed_slow;
 int pas = 1; //step move
- 
+bool verboz=true;
 
 //Key states :
 int vk_speed=XK_Alt_L; // 65513 Alt Key  for more speed
@@ -28,11 +28,12 @@ int vk_left=  65361 ;
 int vk_down= 65364;
 int vk_right= 65363;
 bool lockGrabKeys = false;
-// int vk_mouse_left=Key.ctrl_r //Ctrl_r default for click, for right click, might use thre dedicated button
-// bool vk_use_numpad=true ; //ToDo, add to config
-// int vk_mouse_1 =   //Num_1=65457      //can use num pad 1, 2 , 3 to control mouse buttons
-// int vk_mouse_2='2' //Num_2=65458
-// int vk_mouse_3='3'  //Num_3=65459
+//Keys, for Mouse Buttons events
+int vk_mouse_left=65508; //Ctrl_r(65508) or END(65507) default for convinient click, for right click, you might use thre dedicated button for that
+bool vk_use_numpad=true; //ToDo, add to config
+int vk_mouse_1 = 65457;  //Num_1=65457      //can use num pad 1, 2 , 3 to control mouse buttons
+int vk_mouse_2=65458; //Num_2=65458
+int vk_mouse_3=65459;  //Num_3=65459
 
 map<int,short>keystates;
 
@@ -55,7 +56,7 @@ map<int,int> getModifierComb(vector<int> vlist)
     map<int,int>results;
         
     long long n_count = fact(vlist.size() );
-    cout<<"ncount="<<n_count<<endl;
+    //cout<<"ncount="<<n_count<<endl;
     int vmem=0; int ntour=0;
     int result=0, offset=0;
     for(int i=0; i<n_count; i++)
@@ -199,8 +200,11 @@ void unGrabKeys()
 //--------- Apply key states , keypressed=>1  keyreleased=>0  // global var is :  map<int,short>keystates;
 void updateKeyState(int keycode, short state)
 {    
-    cout<<"updateKeyState("<<keycode<<")"<<endl;
-    cout<<"count(keycode)="<<keystates.count(keycode)<<endl;
+    if(verboz)
+    {
+        cout<<"mouseAction("<<keycode<<", state="<<state<<")"<<endl;
+        cout<<"count(keycode)="<<keystates.count(keycode)<<endl;
+    }
     if(keystates.count(keycode)>0) //check if map contains the key "keycode"
     {
         int prevState= keystates[keycode];
@@ -223,6 +227,71 @@ void updateKeyState(int keycode, short state)
 }//updateKeyState
 
  
+ //Simulate mouse actions
+void mouseAction(int keycode, short state)
+{    
+    if(verboz)
+    {
+    cout<<"mouseAction("<<keycode<<", state="<<state<<")"<<endl;
+    }
+    // cout<<"count(keycode)="<<keystates.count(keycode)<<endl;
+    // if(keystates.count(keycode)>0) //check if map contains the key "keycode"
+    // {
+    //     int prevState= keystates[keycode];
+    //     keystates[keycode]=state;
+    //     printf("key[%d] => prev state = %d, new state = %d \n",keycode,prevState,state);
+    // }
+
+
+    //Simulate Mouse Events :
+    if(keycode == vk_mouse_left)  //Left Click from CTRL_r key
+    {
+        if(state==1)
+        {
+            mouseDown(1,dedicatedDpy);        
+        }
+        if(state==0)
+        {
+            mouseUp(1,dedicatedDpy);
+        }
+    }
+
+    if(keycode == vk_mouse_1)  //Left click from Num Pad
+    {
+        if(state==1)
+        {
+            mouseDown(1,dedicatedDpy);        
+        }
+        if(state==0)
+        {
+            mouseUp(1,dedicatedDpy);
+        }
+    }
+
+    if(keycode == vk_mouse_2)  //Right click from Num Pad
+    {
+        if(state==1)
+        {
+            mouseDown(2,dedicatedDpy);        
+        }
+        if(state==0)
+        {
+            mouseUp(2,dedicatedDpy);
+        }
+    }
+
+    if(keycode == vk_mouse_3)  //Left click from Num Pad
+    {
+        if(state==1)
+        {
+            mouseDown(3,dedicatedDpy);        
+        }
+        if(state==0)
+        {
+            mouseUp(3,dedicatedDpy);
+        }
+    }
+}//mouseActions
 
 
 
@@ -263,11 +332,19 @@ void initApp()
 }//initApp
 
 
-void unInitApp()
+void unInitApp(string from="main")
 {
-    cout<<"Closing App"<<endl;
+    canExit=true;    
+    
+    if(from!="thread")
+    {          
+        usleep(freq);    
+        usleep(10);
+    }else
+    {       
+    }
     if(dedicatedDpy!=NULL){ XCloseDisplay(dedicatedDpy); dedicatedDpy=NULL;}
-    if(d!=NULL) {XCloseDisplay(d); d=NULL;}
+    if(d!=NULL) {XCloseDisplay(d); d=NULL;}    
 }
 
 
@@ -282,22 +359,9 @@ void *_keyStateLoop(void * arg)
     while(!canExit)    
     {
         //puts("In loop");
-
-        //check controller keys all down
-        // if( checkcontrollerKeys() ==1 )
-        // {
-        //     puts("All controller keys down !");
-        //     lockGrabKeys=true;
-        //     if( !keysGrabbed) grabKeys();  //only once if not already grabed
-        // }else
-        // {
-        //     puts("All controller keys released!");
-        //     lockGrabKeys=false;
-        //     if( keysGrabbed) unGrabKeys(); //only once if not already ungrabbed
-        // }
-        //cout<<"***********************   keysGrabbed="<<keysGrabbed<<endl;
         if (keysGrabbed)
         {
+            // //retrieve mouse position          
             getMousePos(mx, my, dedicatedDpy,xDefaultRootWin);
             printf("MousePos is (%d,%d)      \r", mx, my);
             fflush(stdout);
@@ -306,14 +370,8 @@ void *_keyStateLoop(void * arg)
                 freq=speed_boost;
             }else{ freq = speed_slow;}
 
-            // //retrieve mouse position
-            // if( keystates[vk_left]==1)
-            // {
-            //     getMousePos(mx,my,d);
-            //     printf("MousePos is (%d,%d)      \r",mx,my);
-            // }
             changes = 0;
-            //Move mouse :
+            //Change mouse mosition (Move mouse) :
             if (keystates[vk_up] == 1)
             {
                 my -= pas;
@@ -324,20 +382,31 @@ void *_keyStateLoop(void * arg)
                 my += pas;
                 changes++;
             }
+            if (keystates[vk_left] == 1)
+            {
+                mx -= pas;
+                changes++;
+            }
+            if (keystates[vk_right] == 1)
+            {
+                mx += pas;
+                changes++;
+            }
 
             if (changes > 0)
             {
-                cout<<"---------------- CHANGE POZ-----"<<endl;
+                cout<<"---CHANGE POZ-----"<<changes<<"   ";
                 //setMousePos(mx,my,d,rootWindow);
                 setMousePos(mx,my,dedicatedDpy,xDefaultRootWin);
-            }
+            }         
 
         } //do things only if in grabbed state
 
         usleep(2+freq); //Always sleep
     }//wend
 
-    unInitApp(); ///closes displays
+    cout<<"Exiting thread."<<endl;
+    unInitApp("thread"); ///closes displays
 
     return NULL;
 }//threadJob
