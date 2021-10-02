@@ -52,17 +52,29 @@ void updateKeyState(int keycode, short state)
 //grab key regardeless of modifiers
 int xGrabIndependantKey(Display*d, int keycode, unsigned int window)
 {
-    cout<<"Grab key "<<keycode<<endl;
+    cout<<"Grab the key "<<keycode<<endl;
     int r;
     unsigned int    modifiers;
-    // modifiers = ControlMask | MetaMask | NumLockMask; //ControlMask | ShiftMask | Mod2Mask;
+    
+    // modifiers = NumLockMask; //ControlMask | ShiftMask | Mod2Mask;    
     // r=XGrabKey(d, keycode, modifiers, window, True, GrabModeAsync, GrabModeAsync);
-    // modifiers = ControlMask | MetaMask ; //ControlMask | ShiftMask | Mod2Mask;
+    // cout<<"XGrabKey + NumLockMask mod=>"<<r<<endl;
+
+     modifiers =   MetaMask ; //ControlMask | ShiftMask | Mod2Mask;    
     // r=XGrabKey(d, keycode, modifiers, window, True, GrabModeAsync, GrabModeAsync);
-    // modifiers = ControlMask;
+    // cout<<"XGrabKey + MetaMask  mod=>"<<r<<endl;
+
+    XUngrabKey(d, keycode, AnyModifier,window);
+
+    modifiers =  AltMask ;
+    r=XGrabKey(d, keycode, AnyModifier, window, True, GrabModeAsync, GrabModeAsync);
+    cout<<"XGrabKey + AltMask  mod=>"<<r<<endl;  
     // r=XGrabKey(d, keycode, modifiers, window, True, GrabModeAsync, GrabModeAsync);
-    modifiers=0;
-    r=XGrabKey(d, keycode, modifiers, window, True, GrabModeAsync, GrabModeAsync);
+    // cout<<"XGrabKey + ControlMask mod=>"<<r<<endl;
+
+    // modifiers=0;
+    // r=XGrabKey(d, keycode, modifiers, window, True, GrabModeAsync, GrabModeAsync);
+    // cout<<"XGrabKey 0 mod=>"<<r<<endl;
    return r;
 }//grab Independant Key
 
@@ -72,9 +84,10 @@ int xGrabIndependantKey(Display*d, int keycode, unsigned int window)
 bool keysGrabbed = false;
 void grabKeys()
 {
-    KeyCode kc=  XKeysymToKeycode(d,  XK_A);
+    //KeyCode kc=  XKeysymToKeycode(d,  XK_A);
+    KeyCode kc=XKC_UP;
     xGrabIndependantKey(d, kc ,rootWindow);
-    printf("key is grabbed (%d) pour XK_=%d\n",kc,XK_A );
+    printf("key is grabbed (%d) \n",kc );
     sleep(1);
     keysGrabbed=true;
 }

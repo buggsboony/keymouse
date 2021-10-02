@@ -11,7 +11,7 @@
                 "-lXtst",
                 "${file}",
                 "-o",
-                "${relativeFileDirname}/${fileBasenameNoExtension}"
+                "${relativeFileDirname}/${fileBasenameNoExtension}" 
                 ,"-g"
             ],
             "group": "build",

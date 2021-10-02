@@ -29,7 +29,7 @@ int main ()
                         Bool            owner_events    = False;
                         int             pointer_mode    = GrabModeAsync;
                         int             keyboard_mode   = GrabModeAsync;
-  modifiers= Mod2Mask;  //ATTENTION à VERNUM (Mod2Mask)
+  //modifiers= Mod2Mask;  //ATTENTION à VERNUM (Mod2Mask)
 
 
 
