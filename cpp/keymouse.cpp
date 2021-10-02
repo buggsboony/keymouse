@@ -11,7 +11,7 @@
 using namespace std;
 
 
-#include "keymouse_h.cpp"
+#include "keymouse.h"
 
 
 
@@ -70,14 +70,6 @@ initApp();
   
 //puts("abort"); return 32;
 
- //starting Pipe: 
- int err = pthread_create(&tid, NULL, &_keyStateLoop, NULL);
-        if (err != 0)
-            printf("\ncan't create thread :[%s]", strerror(err));
-        else
-            printf("\n keyStateLoop is running.\n");
-
-
 
 
 
@@ -89,6 +81,9 @@ initApp();
 
 
     d = XOpenDisplay(NULL);
+    dedicatedDpy = XOpenDisplay(NULL);
+    xDefaultRootWin = XDefaultRootWindow(dedicatedDpy);
+
     rootWindow = DefaultRootWindow(d);
     Window curFocus;
     char buf[17];
@@ -100,6 +95,17 @@ initApp();
 
     XGetInputFocus (d, &curFocus, &revert);
     XSelectInput(d, curFocus, KeyPressMask | KeyReleaseMask |FocusChangeMask      );
+
+
+
+ //starting Thread process: 
+ int err = pthread_create(&tid, NULL, &_keyStateLoop, NULL);
+        if (err != 0)
+            printf("\ncan't create thread :[%s]", strerror(err));
+        else
+            printf("\n keyStateLoop is running.\n");
+
+
 
     while (1)
     {
@@ -163,4 +169,8 @@ initApp();
         }
 
     }
+
+
+    unInitApp();
+    return 0;
 }//int main

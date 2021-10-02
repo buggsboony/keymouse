@@ -9,13 +9,14 @@ bool printKeyMode=false;// true to enter Print key codes mode
 pthread_t tid;
 bool canExit = false;
 
-Display *d = NULL; //display
-Window rootWindow; //root Window
+Display *d , *dedicatedDpy= NULL; //display
+Window xDefaultRootWin,rootWindow; //root Window
 
 
 
 int speed_boost=200, speed_slow=6200;
 int freq=speed_slow;
+int pas = 1; //step move
  
 
 //Key states :
@@ -33,25 +34,8 @@ bool lockGrabKeys = false;
 // int vk_mouse_2='2' //Num_2=65458
 // int vk_mouse_3='3'  //Num_3=65459
 
-
-//--------- Apply key states , keypressed=>1  keyreleased=>0
 map<int,short>keystates;
-void updateKeyState(int keycode, short state)
-{    
-    cout<<"updateKeyState("<<keycode<<")"<<endl;
-    cout<<"count(keycode)="<<keystates.count(keycode)<<endl;
-    if(keystates.count(keycode)>0) //check if map contains the key "keycode"
-    {
-        int prevState= keystates[keycode];
-        keystates[keycode]=state;
-        printf("key[%d] => prev state = %d, new state = %d \n",keycode,prevState,state);
-    }
-}//updateKeyState
 
-
-
-
- 
 /*calcul de factoriel*/
 long long fact(long long n)
 {//cas particuliers: 0! et 1!
@@ -114,27 +98,6 @@ map<int,int> getModifierComb(vector<int> vlist)
 
 
 
-//Error Handling (vital) not prevent program exit.
-int x_error_handler( Display* dpy, XErrorEvent* pErr )
-{
-    printf("X Error Handler called, values: %d/%lu/%d/%d/%d\n",
-        pErr->type,
-        pErr->serial,
-        pErr->error_code,
-        pErr->request_code,
-        pErr->minor_code );
-    if( pErr->request_code == 33 ){  // 33 (X_GrabKey)
-        if( pErr->error_code == BadAccess ){
-            printf("ERROR: A client attempts to grab a key/button combination already\n"
-                   "        grabbed by another client. Ignoring.\n");
-            return 0;
-        }
-    }
-//exit(1);  // exit the application for all unhandled errors.
-    return 0;
-}
-
-
 //vector<int> modifiersList={ ControlMask,ShiftMask,AltMask,NumLockMask,CapsLockMask,MetaMask};  //CapsLock and Meta not working
 vector<int> modifiersList={ ControlMask,ShiftMask,AltMask,NumLockMask};
 //grab key regardeless of modifiers
@@ -169,6 +132,44 @@ int xGrabIndependantKey(Display*d, int keycode, unsigned int window,string grab_
 }//grab Independant Key
 
 
+//Error Handling (vital) not prevent program exit.
+int x_error_handler( Display* dpy, XErrorEvent* pErr )
+{
+    printf("X Error Handler called, values: %d/%lu/%d/%d/%d\n",
+        pErr->type,
+        pErr->serial,
+        pErr->error_code,
+        pErr->request_code,
+        pErr->minor_code );
+    if( pErr->request_code == 33 ){  // 33 (X_GrabKey)
+        if( pErr->error_code == BadAccess ){
+            printf("ERROR: A client attempts to grab a key/button combination already\n"
+                   "        grabbed by another client. Ignoring.\n");
+            return 0;
+        }
+    }
+    //exit(1);  // exit the application for all unhandled errors.
+    return 0;
+}
+
+
+//checks if all controller keys are down
+short checkcontrollerKeys()
+{ 
+    int count_down=0;
+      // //Fill map with controller keys
+    for (size_t i = 0; i < controllerKeys.size(); i++)
+    {
+        int kcode = controllerKeys[i];         
+        if(keystates[kcode]==1){ count_down++;}
+        //cout << count_down <<endl;
+    }
+    if( count_down >= controllerKeys.size() )
+    {
+        return 1;
+    }
+    return 0;
+}
 
 
 bool keysGrabbed = false;
@@ -190,6 +191,38 @@ void unGrabKeys()
 {    
     grabKeys("ungrab");
 }//unGrabKeys
+
+
+
+
+
+//--------- Apply key states , keypressed=>1  keyreleased=>0  // global var is :  map<int,short>keystates;
+void updateKeyState(int keycode, short state)
+{    
+    cout<<"updateKeyState("<<keycode<<")"<<endl;
+    cout<<"count(keycode)="<<keystates.count(keycode)<<endl;
+    if(keystates.count(keycode)>0) //check if map contains the key "keycode"
+    {
+        int prevState= keystates[keycode];
+        keystates[keycode]=state;
+        printf("key[%d] => prev state = %d, new state = %d \n",keycode,prevState,state);
+    }
+
+
+    if( checkcontrollerKeys() ==1 )
+    {
+        puts("All controller keys down !");
+        lockGrabKeys=true;
+        if( !keysGrabbed) grabKeys();  //only once if not already grabed
+    }else
+    {
+        puts("All controller keys released!");
+        lockGrabKeys=false;
+        if( keysGrabbed) unGrabKeys(); //only once if not already ungrabbed
+    }
+}//updateKeyState
+
+ 
 
 
 
@@ -230,51 +263,81 @@ void initApp()
 }//initApp
 
 
-
-//checks if all controller keys are down
-short checkcontrollerKeys()
-{ 
-    int count_down=0;
-      // //Fill map with controller keys
-    for (size_t i = 0; i < controllerKeys.size(); i++)
-    {
-        int kcode = controllerKeys[i];         
-        if(keystates[kcode]==1){ count_down++;}
-        //cout << count_down <<endl;
-    }
-    if( count_down >= controllerKeys.size() )
-    {
-        return 1;
-    }
-    return 0;
+void unInitApp()
+{
+    cout<<"Closing App"<<endl;
+    if(dedicatedDpy!=NULL){ XCloseDisplay(dedicatedDpy); dedicatedDpy=NULL;}
+    if(d!=NULL) {XCloseDisplay(d); d=NULL;}
 }
 
 
 
-//Thread Job
+
+//Thread Job, loop
 void *_keyStateLoop(void * arg)
 {
+    int mx,my;
+    short changes = 0;
 
-    while(!canExit)
+    while(!canExit)    
     {
-       // puts("in loop");
+        //puts("In loop");
 
         //check controller keys all down
-        if( checkcontrollerKeys() ==1 )
+        // if( checkcontrollerKeys() ==1 )
+        // {
+        //     puts("All controller keys down !");
+        //     lockGrabKeys=true;
+        //     if( !keysGrabbed) grabKeys();  //only once if not already grabed
+        // }else
+        // {
+        //     puts("All controller keys released!");
+        //     lockGrabKeys=false;
+        //     if( keysGrabbed) unGrabKeys(); //only once if not already ungrabbed
+        // }
+        //cout<<"***********************   keysGrabbed="<<keysGrabbed<<endl;
+        if (keysGrabbed)
         {
-            //puts("All controller keys down !");
-            lockGrabKeys=true;
-            if( !keysGrabbed) grabKeys();  //only once if not already grabed
-        }else
-        {
-            lockGrabKeys=false;
-            if( keysGrabbed) unGrabKeys(); //only once if not already ungrabbed
-        }
-        
-        usleep(2+freq);
+            getMousePos(mx, my, dedicatedDpy,xDefaultRootWin);
+            printf("MousePos is (%d,%d)      \r", mx, my);
+            fflush(stdout);
+            //Change speed :
+            if( keystates[vk_speed]==1){
+                freq=speed_boost;
+            }else{ freq = speed_slow;}
+
+            // //retrieve mouse position
+            // if( keystates[vk_left]==1)
+            // {
+            //     getMousePos(mx,my,d);
+            //     printf("MousePos is (%d,%d)      \r",mx,my);
+            // }
+            changes = 0;
+            //Move mouse :
+            if (keystates[vk_up] == 1)
+            {
+                my -= pas;
+                changes++;
+            }
+            if (keystates[vk_down] == 1)
+            {
+                my += pas;
+                changes++;
+            }
+
+            if (changes > 0)
+            {
+                cout<<"---------------- CHANGE POZ-----"<<endl;
+                //setMousePos(mx,my,d,rootWindow);
+                setMousePos(mx,my,dedicatedDpy,xDefaultRootWin);
+            }
+
+        } //do things only if in grabbed state
+
+        usleep(2+freq); //Always sleep
     }//wend
 
-
+    unInitApp(); ///closes displays
 
     return NULL;
 }//threadJob

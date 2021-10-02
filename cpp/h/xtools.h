@@ -86,7 +86,6 @@ class MouseState
   
 };
 
-
 // //Utilisation:
 // int x,y;
 //   getMousePos(x, y);    
@@ -134,6 +133,58 @@ void getMousePos(int &x, int &y, Display *dpy=NULL)
 	  XCloseDisplay(dpy);
 	}
 }//getMousePos                       
+
+
+
+// 2021-10-02 13:47:28 - //Utilisation:
+// int x,y;
+// dedicatedDpy = XOpenDisplay(NULL);
+//    xDefaultRootWin = XDefaultRootWindow(dedicatedDpy);
+//   getMousePos(mx, my, dedicatedDpy,xDefaultRootWin);  
+//   printf("coords %d,%d\n",  x, y);
+
+void getMousePos(int &x, int &y, Display *dedicatedDisplay, Window xDefaultRootWin)
+{
+	 // unsigned int snooze_time = 100000;	
+ 
+	Window ret_root;
+	Window ret_child;
+	int root_x;
+	int root_y;
+	int win_x;
+	int win_y;
+	unsigned int mask;
+ 
+    //Display * dpy;	dpy = XOpenDisplay(NULL);
+	 
+	//root = XDefaultRootWindow(dpy);
+    // root = xDefaultRootWin;
+    // cout <<"dpy=========="<<dpy<<endl;
+    // cout <<"xDefaultRootWin=========="<<xDefaultRootWin<<endl;
+    //root = rootWindow;
+	//root = XDefaultRootWindow(dpy);
+ 
+	if(XQueryPointer(dedicatedDisplay, xDefaultRootWin, &ret_root, &ret_child, &root_x, &root_y,
+					 &win_x, &win_y, &mask))
+	{   
+		// original version
+		//    printf("root loc: %4d,%4d win loc: %3d,%3d mask: 0x%08X\n",
+		//           root_x, root_y, win_x, win_y, mask);
+ 
+		// This returns in -geometry format
+		// I added \n so it actually shows something so people who test it know it works.
+		x= root_x; y= root_y;
+	}
+	else
+	{
+		// your script will break with this output, send it to stderr and let the script
+		// return something sensible like +10+10 
+		printf("oups, pointer not found ! \n");
+	}	 
+
+    //XCloseDisplay(dpy);
+}//getMousePos                       
+
 
 //getCursorPosition
 void getMousePosition(int &x, int &y, Display *dpy=NULL)

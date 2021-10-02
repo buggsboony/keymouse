@@ -2,7 +2,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "build",
+            "label": "build_g++",
             "type": "shell",
             "command": "g++",
             "args": [
@@ -10,6 +10,23 @@
                 "-lX11",
                 "-lXtst",
                 "${file}",
+                "-o",
+                "${relativeFileDirname}/${fileBasenameNoExtension}" 
+                ,"-g"
+            ],
+            "group": "build",
+            "presentation": {},
+            "problemMatcher": "$msCompile"
+        },
+        {
+            "label": "build",  /* Build from main.h or main.cpp */
+            "type": "shell",
+            "command": "g++",
+            "args": [
+                "-lpthread",
+                "-lX11",
+                "-lXtst",
+                "${fileDirname}/${fileBasenameNoExtension}.cpp",
                 "-o",
                 "${relativeFileDirname}/${fileBasenameNoExtension}" 
                 ,"-g"
