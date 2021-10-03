@@ -2,7 +2,7 @@
 #include "h/xtools.h"
 #include "h/iotools.h" 
 
-string appCodeName="keymouse", version="v1.10.56";
+string appCodeName="keymouse", version="v1.3.113"; //vX.d.11m
 string appTitle="keyMouse";
 string configFileBaseName ="keymouse.conf";
 
@@ -181,8 +181,7 @@ void grabKeys(string grab_or_ungrab="grab")
 {    
     if(verboz)
     {
-        cout<<"keyGrabbed="<<keysGrabbed<<"grabKeys("<<grab_or_ungrab<<")"<<endl;
-         
+        cout<<"keyGrabbed="<<keysGrabbed<<", grabKeys("<<grab_or_ungrab<<")"<<endl;         
     }
     //KeyCode kc=  XKeysymToKeycode(d,  XK_A);
     for(auto mKstate : keystates)
@@ -410,9 +409,7 @@ void unInitApp(string from="main")
        usleep(1020);  
     }
     //Ungrab if keyboard was grabbed
-    if(keysGrabbed){ unGrabKeys();}
-    if(dedicatedDpy!=NULL){ XCloseDisplay(dedicatedDpy); dedicatedDpy=NULL;}
-    if(d!=NULL) {XCloseDisplay(d); d=NULL;}    
+    if(keysGrabbed){ unGrabKeys();}         
 }
 
 
@@ -425,9 +422,9 @@ void *_keyStateLoop(void * arg)
     short closek,changes = 0;
     Display * dpy;
     while(!canExit)    
-    {
+    {        
         dpy=dedicatedDpy;
-        
+        if(dpy==NULL) { printlnErr("_keyStateLoop => dpy is null !");  break;    }
         //puts("In loop");
         if (keysGrabbed)
         {
@@ -481,6 +478,7 @@ void *_keyStateLoop(void * arg)
             if(closek>=3){ 
                 softExit=true; //Exit main events loop
                 printCoolLn("\n Closing by key combination..");
+                //return NULL;                
                 break;
             }
         } //do things only if in grabbed state
@@ -488,8 +486,7 @@ void *_keyStateLoop(void * arg)
         usleep(2+freq); //Always sleep
     }//wend
 
-    cout<<"\nExiting thread."<<endl;
     unInitApp("thread"); ///closes displays
-
+    cout<<"\nExiting thread."<<endl;
     return NULL;
 }//threadJob

@@ -72,6 +72,12 @@ int main(int argc, char **argv)
         }
         
     }//next arg
+
+
+    //Greetings, version and name
+    printlnCool(appTitle+" "+version);
+
+
     //Register for signals exits
     signal(SIGTERM, signalHandlerClose);
     signal(SIGINT, signalHandlerClose);
@@ -145,7 +151,7 @@ if(openConfig)
 //init application here
 initApp();
 
-    XInitThreads();
+    XInitThreads(); //allow concurrent threads
     d = XOpenDisplay(NULL);
     dedicatedDpy = XOpenDisplay(NULL);
     xDefaultRootWin = XDefaultRootWindow(dedicatedDpy);
@@ -177,6 +183,7 @@ initApp();
     {
         usleep(1); //never be carefull enough
         XEvent ev;
+        if(d==NULL){ printlnErr("Display * d is null"); break;}
         XNextEvent(d, &ev);
         switch (ev.type)
         {
@@ -237,17 +244,24 @@ initApp();
                 if(softExit)
                 {                   
                     cout<<"Exit main events loop..."<<endl;
-                    unInitApp();
-                    return 0;
+                    break;      
                 }
                 
         }
 
     }//wend canExit
 
-    cout<<endl<<"Exit main events loop..."<<endl;
 
 
     unInitApp();
+
+    if(verboz) puts("wait for thread to exit");
+    pthread_join(tid,NULL);
+    
+    puts(" XCloseDisplay ...");
+    if(d!=NULL) { XCloseDisplay(d); d=NULL;}    
+    if(dedicatedDpy!=NULL){ XCloseDisplay(dedicatedDpy); dedicatedDpy=NULL;}
+    printCoolLn("Good bye...");
+
     return 0;
 }//int main
