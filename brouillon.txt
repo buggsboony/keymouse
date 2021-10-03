@@ -25,3 +25,19 @@ Key.right release
 '3' release
 Key.esc pressed
 Key.esc release
+
+
+Up down puis ctrl_r :
+---CHANGE POZ-----1   All controller keys down !
+All controller keys down !
+[xcb] Unknown sequence number while processing reply
+[xcb] Most likely this is a multi-threaded client and XInitThreads has not been called
+[xcb] Aborting, sorry about that.
+keymouse: xcb_io.c:725: _XReply: Assertion `!xcb_xlib_threads_sequence_lost' failed.
+zsh: abort (core dumped)  ./keymouse
+
+up, down ctrl after change focus
+All controller keys down !
+mouseActioned(65508, state=1)
+XIO:  fatal IO error 0 (Success) on X server ":0"
+      after 36568 requests (36568 known processed) with 0 events remaining.

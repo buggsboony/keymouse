@@ -14,7 +14,7 @@ Window xDefaultRootWin,rootWindow; //root Window
 
 
 
-int speed_boost=200, speed_slow=2200;
+int speed_boost=200, speed_slow=2800;
 int freq=speed_slow;
 int pas = 1; //step move
 bool verboz=true;
@@ -202,14 +202,14 @@ void updateKeyState(int keycode, short state)
 {    
     if(verboz)
     {
-        cout<<"mouseAction("<<keycode<<", state="<<state<<")"<<endl;
-        cout<<"count(keycode)="<<keystates.count(keycode)<<endl;
+        // cout<<"mouseAction("<<keycode<<", state="<<state<<")"<<endl;
+        // cout<<"count(keycode)="<<keystates.count(keycode)<<endl;
     }
     if(keystates.count(keycode)>0) //check if map contains the key "keycode"
     {
         int prevState= keystates[keycode];
         keystates[keycode]=state;
-        printf("key[%d] => prev state = %d, new state = %d \n",keycode,prevState,state);
+        //printf("key[%d] => prev state = %d, new state = %d \n",keycode,prevState,state);
     }
 
 
@@ -230,9 +230,10 @@ void updateKeyState(int keycode, short state)
  //Simulate mouse actions
 void mouseAction(int keycode, short state)
 {    
+    int changes =0;
     if(verboz)
     {
-    cout<<"mouseAction("<<keycode<<", state="<<state<<")"<<endl;
+       // cout<<"mouseAction("<<keycode<<", state="<<state<<")"<<endl;
     }
     // cout<<"count(keycode)="<<keystates.count(keycode)<<endl;
     // if(keystates.count(keycode)>0) //check if map contains the key "keycode"
@@ -242,54 +243,59 @@ void mouseAction(int keycode, short state)
     //     printf("key[%d] => prev state = %d, new state = %d \n",keycode,prevState,state);
     // }
 
-
+    Display * dpy=d;
     //Simulate Mouse Events :
     if(keycode == vk_mouse_left)  //Left Click from CTRL_r key
-    {
+    { changes++;
         if(state==1)
         {
-            mouseDown(1,dedicatedDpy);        
+            mouseDown(1,dpy);        
         }
         if(state==0)
         {
-            mouseUp(1,dedicatedDpy);
+            mouseUp(1,dpy);
         }
     }
 
     if(keycode == vk_mouse_1)  //Left click from Num Pad
-    {
+    {changes++;
         if(state==1)
         {
-            mouseDown(1,dedicatedDpy);        
+            mouseDown(1,dpy);        
         }
         if(state==0)
         {
-            mouseUp(1,dedicatedDpy);
+            mouseUp(1,dpy);
         }
     }
 
     if(keycode == vk_mouse_2)  //Right click from Num Pad
-    {
+    {changes++;
         if(state==1)
         {
-            mouseDown(2,dedicatedDpy);        
+            mouseDown(2,dpy);        
         }
         if(state==0)
         {
-            mouseUp(2,dedicatedDpy);
+            mouseUp(2,dpy);
         }
     }
 
     if(keycode == vk_mouse_3)  //Left click from Num Pad
-    {
+    {changes++;
         if(state==1)
         {
-            mouseDown(3,dedicatedDpy);        
+            mouseDown(3,dpy);        
         }
         if(state==0)
         {
-            mouseUp(3,dedicatedDpy);
+            mouseUp(3,dpy);
         }
+    }
+
+    if(changes>0)
+    {
+        cout<<"mouseActioned("<<keycode<<", state="<<state<<")"<<endl;
     }
 }//mouseActions
 

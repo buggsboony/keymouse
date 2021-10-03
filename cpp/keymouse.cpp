@@ -146,8 +146,8 @@ initApp();
         switch (ev.type)
         {
             case FocusOut:
-                printf ("Focus changed!\n");
-                printf ("Old focus is %d\n", (int)curFocus);
+                // printf ("Focus changed!\n");
+                // printf ("Old focus is %d\n", (int)curFocus);
                 if (curFocus != rootWindow)
                     XSelectInput(d, curFocus, 0);
                 XGetInputFocus (d, &curFocus, &revert);
@@ -163,8 +163,7 @@ initApp();
                 len = XLookupString(&ev.xkey, buf, 16, &ks, &comp);
                 if(printKeyMode)
                 {
-                    printf ("KeyRelease :\n");
-                   
+                    printf ("KeyRelease :\n");                   
                     printf ("KeyCode is: %d ---- ", (int)ks);
                     if (len > 0 && isprint(buf[0]))
                     {
@@ -183,8 +182,7 @@ initApp();
                 len = XLookupString(&ev.xkey, buf, 16, &ks, &comp);
                 if(printKeyMode)
                 {
-                    printf ("KeyPress :\n");
-                    
+                    printf ("KeyPress :\n");                    
                     printf ("KeyCode is: %d ---- ", (int)ks);
                     if (len > 0 && isprint(buf[0]))
                     {
