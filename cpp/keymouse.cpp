@@ -26,13 +26,18 @@ void signalHandlerClose(int sig)
     exit(sig);
 }//sigHandler
 
-
 int main(int argc, char **argv)
 {
-    //Register for signals exits
-    signal(SIGTERM, signalHandlerClose);
-    signal(SIGINT, signalHandlerClose);
-
+  string help="     Options: \n"
+ "\n\t-h, --help                      Displays help on commandline options.                                    "
+ "\n\t -v, --version                  Displays version information.                                           "
+//"\n\t --author                        Afficher les informations sur auteur.                                    "
+//"\n\t --license                       Afficher les informations sur la licence.                                    "
+ "\n\t--printkey                      Display key codes on keypressed                                           "
+ "\n\t--reset, --reset-config         Drop and build config file                                               "
+ "\n\t--config, --open-config         Open config file   "
+ "\n\t--verbose                       Logs                                          "
+;
     for (size_t i = 0; i < argc; i++)
     {
         string arg=argv[i];
@@ -40,20 +45,49 @@ int main(int argc, char **argv)
         {
             printKeyMode=true;
         }
-    }
+        if( (arg=="--reset") || (arg=="--reset-config") )
+        {
+            resetConfig=true;
+        }
+        if( (arg=="--config") || (arg=="--open-config") )
+        {
+            openConfig=true;
+        }
+
+        if( (arg=="-v") || (arg=="--version") )
+        {
+            cout<<appCodeName<<" "<<version<<endl;
+            return 0;
+        } 
+        
+        if( (arg=="-h") || (arg=="--help") )
+        {
+            cout<<help<<endl;
+            return 0;
+        } 
+        
+        if(  (arg=="--verbose") )
+        {
+            verboz=true;
+        }
+        
+    }//next arg
+    //Register for signals exits
+    signal(SIGTERM, signalHandlerClose);
+    signal(SIGINT, signalHandlerClose);
     
 ////-------------  Récupération de la config  ------------------ 
 
-//lire et écrire un fichier de conf
- 
-// string configFullPath=getHomeDir(); configFullPath.append("/.config/"+appCodeName+"/"); 
-// //createDirectory(configFullPath, true); //ensure directories exist
-// string configFullName = configFullPath.append(configFileBaseName);
+//read write config file   /home/userxxx/.config/keymouse/keymouse.conf
+string configFullPath=getHomeDir(); configFullPath.append("/.config/"+appCodeName+"/"); 
+createDirectory(configFullPath, true); //ensure directories exist
+string configFullName = configFullPath.append(configFileBaseName);
 
+if(resetConfig) removeFile(configFullName);
 
-ConfigFile cfile(configFileBaseName); //Config file is next to executable
+ConfigFile cfile(configFullName); 
  
-if( (fileExists(configFileBaseName)) && (cfile.read() == 0)  ) 
+if( (fileExists(configFullName)) && (cfile.read() == 0)  ) 
 { 
     //cout<<"Read!"<<endl;
     //Speed parameters
@@ -70,6 +104,8 @@ if( (fileExists(configFileBaseName)) && (cfile.read() == 0)  )
     vk_right=cfile.getiVar("vk_right");
     //Keys to simulates mouse Buttons for mouse events
     vk_mouse_left=cfile.getiVar("vk_mouse_left"); 
+    vk_mouse_right=cfile.getiVar("vk_mouse_right");
+    vk_alternative_mouse_left=cfile.getiVar("vk_alternative_mouse_left"); 
     vk_use_numpad=cfile.getbVar("vk_use_numpad"); 
     vk_mouse_1=cfile.getiVar("vk_mouse_1"); 
     vk_mouse_2=cfile.getiVar("vk_mouse_2");
@@ -88,6 +124,8 @@ if( (fileExists(configFileBaseName)) && (cfile.read() == 0)  )
     cfile.writeiVar(speed_boost,"speed_boost"); 
     //Mouse Buttons for mouse events
     cfile.writeiVar(vk_mouse_left,"vk_mouse_left"); 
+    cfile.writeiVar(vk_mouse_right,"vk_mouse_right");
+    cfile.writeiVar(vk_alternative_mouse_left,"vk_alternative_mouse_left"); 
     cfile.writebVar(vk_use_numpad,"vk_use_numpad"); 
     cfile.writeiVar(vk_mouse_1,"vk_mouse_1"); 
     cfile.writeiVar(vk_mouse_2,"vk_mouse_2");
@@ -96,21 +134,18 @@ if( (fileExists(configFileBaseName)) && (cfile.read() == 0)  )
     printCoolLn("Nouveau fichier config de config créé : '"+configFileBaseName+"'");
 }
 
+if(openConfig)
+{
+    cout<<"Opening config file :"<<endl<<configFullName<<endl;
+    string command="xdg-open "; command.append(configFullName); command.append("&");
+    execute(command);
+    cout<<"Done"<<endl;
+    return 2;
+}
 //init application here
 initApp();
-  
-//puts("abort"); return 32;
 
-
-
-
-
-
-
-
-
-
-
+    XInitThreads();
     d = XOpenDisplay(NULL);
     dedicatedDpy = XOpenDisplay(NULL);
     xDefaultRootWin = XDefaultRootWindow(dedicatedDpy);
@@ -138,7 +173,7 @@ initApp();
 
 
 
-    while (1)
+    while (!canExit)
     {
         usleep(1); //never be carefull enough
         XEvent ev;
@@ -146,15 +181,17 @@ initApp();
         switch (ev.type)
         {
             case FocusOut:
-                // printf ("Focus changed!\n");
-                // printf ("Old focus is %d\n", (int)curFocus);
+                if(verboz) {
+                     printf ("Focus changed!\n");
+                     printf ("Old focus is %d\n", (int)curFocus);
+                }
                 if (curFocus != rootWindow)
                     XSelectInput(d, curFocus, 0);
                 XGetInputFocus (d, &curFocus, &revert);
-                printf ("New focus is %d\n", (int)curFocus);
+                if(verboz) printf ("New focus is %d\n", (int)curFocus);
                 if (curFocus == PointerRoot)
                     curFocus = rootWindow;
-                puts("XSelectInput");
+                //puts("XSelectInput");
                 //XGrabKey(d, XKC_COMMA, 0, curFocus, True, GrabModeAsync, GrabModeAsync);
                 XSelectInput(d, curFocus, KeyPressMask|KeyReleaseMask|FocusChangeMask);
                 break;
@@ -196,10 +233,19 @@ initApp();
                     updateKeyState(keycode, 1);
                     mouseAction(keycode,1);
                 }
+                //exit by key combination :
+                if(softExit)
+                {                   
+                    cout<<"Exit main events loop..."<<endl;
+                    unInitApp();
+                    return 0;
+                }
                 
         }
 
-    }
+    }//wend canExit
+
+    cout<<endl<<"Exit main events loop..."<<endl;
 
 
     unInitApp();

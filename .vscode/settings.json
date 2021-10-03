@@ -2,6 +2,7 @@
 
 "workbench.colorTheme": "Gruvbox Dark Hard",
 "editor.autoClosingBrackets": "never",
+"editor.autoClosingQuotes": "never",
 "files.associations": {
     "iostream": "cpp",
     "ostream": "cpp"

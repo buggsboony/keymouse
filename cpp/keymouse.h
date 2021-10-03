@@ -1,13 +1,14 @@
 #include "h/tools.h" 
 #include "h/xtools.h"
 #include "h/iotools.h" 
-string appCodeName="keymouse";
+
+string appCodeName="keymouse", version="v1.10.56";
 string appTitle="keyMouse";
 string configFileBaseName ="keymouse.conf";
 
-bool printKeyMode=false;// true to enter Print key codes mode
+bool printKeyMode=false, openConfig=false,resetConfig=false;// true to enter Print key codes mode
 pthread_t tid;
-bool canExit = false;
+bool canExit = false, softExit=false;
 
 Display *d , *dedicatedDpy= NULL; //display
 Window xDefaultRootWin,rootWindow; //root Window
@@ -17,7 +18,7 @@ Window xDefaultRootWin,rootWindow; //root Window
 int speed_boost=200, speed_slow=2800;
 int freq=speed_slow;
 int pas = 1; //step move
-bool verboz=true;
+bool verboz=false;
 
 //Key states :
 int vk_speed=XK_Alt_L; // 65513 Alt Key  for more speed
@@ -29,11 +30,13 @@ int vk_down= 65364;
 int vk_right= 65363;
 bool lockGrabKeys = false;
 //Keys, for Mouse Buttons events
-int vk_mouse_left=65508; //Ctrl_r(65508) or END(65507) default for convinient click, for right click, you might use thre dedicated button for that
+int vk_mouse_left=65508; //vk_mouse_left Ctrl_r(65508) or END(65367) default for convinient click, for right click, you might use thre dedicated button for that
+int vk_alternative_mouse_left=65367;
 bool vk_use_numpad=true; //ToDo, add to config
-int vk_mouse_1 = 65457;  //Num_1=65457      //can use num pad 1, 2 , 3 to control mouse buttons
-int vk_mouse_2=65458; //Num_2=65458
-int vk_mouse_3=65459;  //Num_3=65459
+int vk_mouse_1 = 65457;  //vk_mouse_1 Num_1=65457      //can use num pad 1, 2 , 3 to control mouse buttons
+int vk_mouse_2=65458;    //vk_mouse_2  Num_2=65458   (Middle Click
+int vk_mouse_3=65459;    //vk_mouse_3 Num_3=65459   (Right Click)  
+int vk_mouse_right=65435; //65366 PageDown or 65435: Num_3 without Numlock activated!
 
 map<int,short>keystates;
 
@@ -175,13 +178,18 @@ short checkcontrollerKeys()
 
 bool keysGrabbed = false;
 void grabKeys(string grab_or_ungrab="grab")
-{
+{    
+    if(verboz)
+    {
+        cout<<"keyGrabbed="<<keysGrabbed<<"grabKeys("<<grab_or_ungrab<<")"<<endl;
+         
+    }
     //KeyCode kc=  XKeysymToKeycode(d,  XK_A);
     for(auto mKstate : keystates)
     {
         KeyCode kc=mKstate.first;
         xGrabIndependantKey(d, kc ,rootWindow, grab_or_ungrab);    
-        usleep(2);
+        usleep(1);
     }
     if(grab_or_ungrab=="grab")
         keysGrabbed=true;
@@ -215,14 +223,34 @@ void updateKeyState(int keycode, short state)
 
     if( checkcontrollerKeys() ==1 )
     {
-        puts("All controller keys down !");
+        if(verboz) puts("All controller keys down !");
         lockGrabKeys=true;
         if( !keysGrabbed) grabKeys();  //only once if not already grabed
     }else
     {
-        puts("All controller keys released!");
+        if(verboz) puts("All controller keys released!");
         lockGrabKeys=false;
         if( keysGrabbed) unGrabKeys(); //only once if not already ungrabbed
+    }
+
+    if( keysGrabbed)
+    {
+        short closek=0;
+        if (keystates[vk_down] == 1)
+        {
+            closek++;
+        }
+        if (keystates[vk_left] == 1)
+        { 
+            closek++;
+        }
+        if (keystates[vk_right] == 1)
+        {
+            closek++;
+        }
+        if(closek>=3) { softExit = true; //will exit main loop event
+            canExit=true; //exit thread
+        }
     }
 }//updateKeyState
 
@@ -230,19 +258,14 @@ void updateKeyState(int keycode, short state)
  //Simulate mouse actions
 void mouseAction(int keycode, short state)
 {    
+    if(!keysGrabbed) return ; // No action if not grabbed
+    
     int changes =0;
     if(verboz)
     {
        // cout<<"mouseAction("<<keycode<<", state="<<state<<")"<<endl;
     }
-    // cout<<"count(keycode)="<<keystates.count(keycode)<<endl;
-    // if(keystates.count(keycode)>0) //check if map contains the key "keycode"
-    // {
-    //     int prevState= keystates[keycode];
-    //     keystates[keycode]=state;
-    //     printf("key[%d] => prev state = %d, new state = %d \n",keycode,prevState,state);
-    // }
-
+ 
     Display * dpy=d;
     //Simulate Mouse Events :
     if(keycode == vk_mouse_left)  //Left Click from CTRL_r key
@@ -257,8 +280,9 @@ void mouseAction(int keycode, short state)
         }
     }
 
-    if(keycode == vk_mouse_1)  //Left click from Num Pad
-    {changes++;
+    if(keycode == vk_alternative_mouse_left )  //Left Click from CTRL_r key
+    { changes++;
+        printCoolLn("Alertative Mouse left !!!!");
         if(state==1)
         {
             mouseDown(1,dpy);        
@@ -269,19 +293,7 @@ void mouseAction(int keycode, short state)
         }
     }
 
-    if(keycode == vk_mouse_2)  //Right click from Num Pad
-    {changes++;
-        if(state==1)
-        {
-            mouseDown(2,dpy);        
-        }
-        if(state==0)
-        {
-            mouseUp(2,dpy);
-        }
-    }
-
-    if(keycode == vk_mouse_3)  //Left click from Num Pad
+    if(keycode == vk_mouse_right)  //Right click from page Down or numpad_3
     {changes++;
         if(state==1)
         {
@@ -292,6 +304,45 @@ void mouseAction(int keycode, short state)
             mouseUp(3,dpy);
         }
     }
+
+    if(vk_use_numpad) //Numpad in used:
+    {
+        if(keycode == vk_mouse_1)  //Left click from Num Pad
+        {changes++;
+            if(state==1)
+            {
+                mouseDown(1,dpy);        
+            }
+            if(state==0)
+            {
+                mouseUp(1,dpy);
+            }
+        }
+
+        if(keycode == vk_mouse_2)  //Right click from Num Pad
+        {changes++;
+            if(state==1)
+            {
+                mouseDown(2,dpy);        
+            }
+            if(state==0)
+            {
+                mouseUp(2,dpy);
+            }
+        }
+
+        if(keycode == vk_mouse_3)  //Left click from Num Pad
+        {changes++;
+            if(state==1)
+            {
+                mouseDown(3,dpy);        
+            }
+            if(state==0)
+            {
+                mouseUp(3,dpy);
+            }
+        }
+    }//endif numpad used
 
     if(changes>0)
     {
@@ -328,8 +379,16 @@ void initApp()
     keystates[vk_left]=-1;
     keystates[vk_down]=-1;
     keystates[vk_right]=-1;
+    // add actions keys to the grab
+    keystates[vk_mouse_left]=-1;
+    keystates[vk_mouse_right]=-1;
+    keystates[vk_alternative_mouse_left]=-1;
+    keystates[vk_mouse_1]=-1;
+    keystates[vk_mouse_2]=-1;
+    keystates[vk_mouse_3]=-1;
 
-    freq=speed_slow; //default freq is speed slow   
+    //default freq is speed slow  
+    freq=speed_slow;  
 
 
     //Catch X errors! 
@@ -339,16 +398,19 @@ void initApp()
 
 
 void unInitApp(string from="main")
-{
+{    
     canExit=true;    
-    
+    if(verboz) cout<<"\n unInitApp from "<<from<<endl;
     if(from!="thread")
     {          
         usleep(freq);    
-        usleep(10);
+        usleep(1020);
     }else
-    {       
+    {      
+       usleep(1020);  
     }
+    //Ungrab if keyboard was grabbed
+    if(keysGrabbed){ unGrabKeys();}
     if(dedicatedDpy!=NULL){ XCloseDisplay(dedicatedDpy); dedicatedDpy=NULL;}
     if(d!=NULL) {XCloseDisplay(d); d=NULL;}    
 }
@@ -360,23 +422,32 @@ void unInitApp(string from="main")
 void *_keyStateLoop(void * arg)
 {
     int mx,my;
-    short changes = 0;
-
+    short closek,changes = 0;
+    Display * dpy;
     while(!canExit)    
     {
+        dpy=dedicatedDpy;
+        
         //puts("In loop");
         if (keysGrabbed)
         {
-            // //retrieve mouse position          
-            getMousePos(mx, my, dedicatedDpy,xDefaultRootWin);
-            printf("MousePos is (%d,%d)      \r", mx, my);
-            fflush(stdout);
+            // //retrieve mouse position    
+            XLockDisplay(dpy);      
+            getMousePos(mx, my, dpy,xDefaultRootWin);        
+            if(verboz)
+            {
+                printf("MousePos is (%d,%d)      \r", mx, my);
+                fflush(stdout);
+            }
             //Change speed :
             if( keystates[vk_speed]==1){
+                //printlnCool("Speed up!");
                 freq=speed_boost;
-            }else{ freq = speed_slow;}
+            }else{ freq = speed_slow;
+                //cout<<"Speeed slow ----------------------------------------------"<<endl;
+            }
 
-            changes = 0;
+            changes = 0; closek=0;
             //Change mouse mosition (Move mouse) :
             if (keystates[vk_up] == 1)
             {
@@ -386,32 +457,38 @@ void *_keyStateLoop(void * arg)
             if (keystates[vk_down] == 1)
             {
                 my += pas;
-                changes++;
+                changes++; closek++;
             }
             if (keystates[vk_left] == 1)
             {
                 mx -= pas;
-                changes++;
+                changes++;closek++;
             }
             if (keystates[vk_right] == 1)
             {
                 mx += pas;
-                changes++;
+                changes++;closek++;
             }
 
             if (changes > 0)
             {
-                cout<<"---CHANGE POZ-----"<<changes<<"   ";
+                if(verboz)cout<<"---CHANGE POZ-----"<<changes<<"   ";
                 //setMousePos(mx,my,d,rootWindow);
-                setMousePos(mx,my,dedicatedDpy,xDefaultRootWin);
+                setMousePos(mx,my,dpy,xDefaultRootWin);
             }         
+            XUnlockDisplay(dpy);
 
+            if(closek>=3){ 
+                softExit=true; //Exit main events loop
+                printCoolLn("\n Closing by key combination..");
+                break;
+            }
         } //do things only if in grabbed state
 
         usleep(2+freq); //Always sleep
     }//wend
 
-    cout<<"Exiting thread."<<endl;
+    cout<<"\nExiting thread."<<endl;
     unInitApp("thread"); ///closes displays
 
     return NULL;
