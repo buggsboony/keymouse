@@ -6,7 +6,7 @@ string appCodeName="keymouse", version="v1.3.113"; //vX.d.11m
 string appTitle="keyMouse";
 string configFileBaseName ="keymouse.conf";
 
-bool printKeyMode=false, openConfig=false,resetConfig=false;// true to enter Print key codes mode
+bool printKeyMode=false, testClick=false, openConfig=false,resetConfig=false;// true to enter Print key codes mode
 pthread_t tid;
 bool canExit = false, softExit=false;
 

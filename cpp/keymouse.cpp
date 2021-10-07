@@ -36,6 +36,7 @@ int main(int argc, char **argv)
  "\n\t--printkey                      Display key codes on keypressed                                           "
  "\n\t--reset, --reset-config         Drop and build config file                                               "
  "\n\t--config, --open-config         Open config file   "
+ "\n\t--click, --test-click           Test: sends mouse events after 2sec, down for 1 sec then release   "
  "\n\t--verbose                       Logs                                          "
 ;
     for (size_t i = 0; i < argc; i++)
@@ -52,6 +53,11 @@ int main(int argc, char **argv)
         if( (arg=="--config") || (arg=="--open-config") )
         {
             openConfig=true;
+        }
+
+        if( (arg=="--click") || (arg=="--test-click") )
+        {            
+            testClick=true;
         }
 
         if( (arg=="-v") || (arg=="--version") )
@@ -169,6 +175,17 @@ initApp();
     XSelectInput(d, curFocus, KeyPressMask | KeyReleaseMask |FocusChangeMask      );
 
 
+if(testClick)
+{
+    cout<<"Test click will start"<<endl;
+      sleep(2);
+           mouseDown(1,dedicatedDpy);        
+            sleep(1);
+                mouseUp(1,dedicatedDpy);
+            cout<<"Test click stopped"<<endl;            
+    cout<<"Done"<<endl;
+    return 2;
+}
 
  //starting Thread process: 
  int err = pthread_create(&tid, NULL, &_keyStateLoop, NULL);

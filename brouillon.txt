@@ -41,3 +41,27 @@ All controller keys down !
 mouseActioned(65508, state=1)
 XIO:  fatal IO error 0 (Success) on X server ":0"
       after 36568 requests (36568 known processed) with 0 events remaining.
+
+
+
+
+
+
+      #2021-10-07 10:57:29 - cinnamon config test : ALT+META   et speed=Shift_L
+      
+controller_keys=65515,65513
+key_speed=65505
+vk_up=65362
+vk_left=65361
+vk_down=65364
+vk_right=65363
+speed_slow=2800
+speed_boost=200
+vk_mouse_left=65508
+vk_mouse_right=65435
+vk_alternative_mouse_left=65367
+vk_use_numpad=true
+vk_mouse_1=65457
+vk_mouse_2=65458
+vk_mouse_3=65459
+

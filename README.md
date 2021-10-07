@@ -3,6 +3,7 @@
 
 # keymouse (c++)
 ./keymouse --printkey #enter in loop, and prints key codes (Usefull to set keycodes in keymouse.conf)
+./keymouse --click   #test left click for 1 sec
 #        Configfile: 
          /home/userxxx/.config/keymouse/keymouse.conf
             //vk_mouse_left Ctrl_r(65508) or END(65367) default for convinient click, for right click, you might use thre dedicated button for that
