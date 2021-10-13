@@ -72,7 +72,6 @@ int main ()
   //modifiers= Mod2Mask;  //ATTENTION à VERNUM (Mod2Mask)
 
 
-
     XGetInputFocus (d, &curFocus, &revert);
     XSelectInput(d, curFocus, KeyPressMask|KeyReleaseMask |FocusChangeMask      );
 
@@ -119,7 +118,11 @@ int main ()
                     {
                            
                     
-                  //modifiers = AnyModifier;
+                    modifiers=0;
+
+                 // modifiers = AnyModifier;
+                        XGrabKey(d, keycode, modifiers, root, owner_events, pointer_mode, keyboard_mode);
+                        modifiers= Mod2Mask;
                          XGrabKey(d, keycode, modifiers, root, owner_events, pointer_mode, keyboard_mode);
                         puts("Woauwh  Grab !!! ");
                     }
