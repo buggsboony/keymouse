@@ -37,7 +37,7 @@ int main(int argc, char **argv)
  "\n\t--reset, --reset-config         Drop and build config file                                               "
  "\n\t--config, --open-config         Open config file   "
  "\n\t--click, --test-click           Test: sends mouse events after 2sec, down for 1 sec then release   "
- "\n\t--verbose                       Logs                                          "
+ "\n\t--verbose, --verboz             Logs                                          "
 ;
     for (size_t i = 0; i < argc; i++)
     {
@@ -72,7 +72,7 @@ int main(int argc, char **argv)
             return 0;
         } 
         
-        if(  (arg=="--verbose") )
+        if(  (arg=="--verbose") ||  (arg=="--verboz") )
         {
             verboz=true;
         }

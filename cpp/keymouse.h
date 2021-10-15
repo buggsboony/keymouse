@@ -14,6 +14,7 @@ Display *d , *dedicatedDpy= NULL; //display
 Window xDefaultRootWin,rootWindow; //root Window
 
 
+bool modeTOR = true; //mode Tout Ou Rien
 
 int speed_boost=200, speed_slow=2800;
 int freq=speed_slow;
@@ -21,8 +22,10 @@ int pas = 1; //step move
 bool verboz=false;
 
 //Key states :
-int vk_speed=XK_Alt_L; // 65513 Alt Key  for more speed
+string controller_keys_TOR="65507,65515,65513"; //Controller keys TOR :    Ctrl+ Win + Alt
+int vk_speed_TOR=65505; // 65505 SHIFT_L
 string controller_keys="65507,65515"; //default controller keys //Ctrl_L=65507  ctrl_r=65508//Meta key (windows key) = 65515
+int vk_speed=XK_Alt_L; // 65513 Alt Key  for more speed
 map<int,int>controllerKeys;
 int vk_up= 65362;
 int vk_left=  65361 ;
@@ -161,13 +164,25 @@ int x_error_handler( Display* dpy, XErrorEvent* pErr )
 short checkcontrollerKeys()
 { 
     int count_down=0;
+    if(verboz)
+    {
+        cout<<"chkControlKeys:";
+    }
       // //Fill map with controller keys
     for (size_t i = 0; i < controllerKeys.size(); i++)
     {
         int kcode = controllerKeys[i];         
         if(keystates[kcode]==1){ count_down++;}
-        //cout << count_down <<endl;
+        if(verboz){
+            cout<<i<<":"<<count_down;
+        }
     }
+
+    if(verboz)
+    {
+        cout<<endl;
+    }
+
     if( count_down >= controllerKeys.size() )
     {
         return 1;
@@ -222,12 +237,12 @@ void updateKeyState(int keycode, short state)
 
     if( checkcontrollerKeys() ==1 )
     {
-        if(verboz) puts("All controller keys down !");
+        if(verboz) puts("-------------------  All controller keys DOWN !");
         lockGrabKeys=true;
         if( !keysGrabbed) grabKeys();  //only once if not already grabed
     }else
     {
-        if(verboz) puts("All controller keys released!");
+        if(verboz) puts("-------------------  All controller keys RELEASED!");
         lockGrabKeys=false;
         if( keysGrabbed) unGrabKeys(); //only once if not already ungrabbed
     }
@@ -355,6 +370,11 @@ void mouseAction(int keycode, short state)
 void initApp()
 {
     //retreive list of controller keys 
+    if(modeTOR)
+    {
+        controller_keys = controller_keys_TOR;
+        vk_speed = vk_speed_TOR; 
+    }
     vector <string> slist = splitStr(controller_keys,',');
     for (size_t i = 0; i < slist.size(); i++)
     {

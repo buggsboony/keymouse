@@ -122,8 +122,8 @@ int main ()
 
                  // modifiers = AnyModifier;
                         XGrabKey(d, keycode, modifiers, root, owner_events, pointer_mode, keyboard_mode);
-                        modifiers= Mod2Mask;
-                         XGrabKey(d, keycode, modifiers, root, owner_events, pointer_mode, keyboard_mode);
+                        modifiers= Mod2Mask; //Vernum
+                        XGrabKey(d, keycode, modifiers, root, owner_events, pointer_mode, keyboard_mode);
                         puts("Woauwh  Grab !!! ");
                     }
                 }
