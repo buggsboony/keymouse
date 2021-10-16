@@ -62,9 +62,15 @@ int main ()
 // Early in your application
 //XSetErrorHandler( x_error_handler );
 
-
         unsigned int    modifiers       = ControlMask | ShiftMask ;
-                        int             keycode         = XKeysymToKeycode(d,XK_A);
+        int xkcode = 60;
+        int keycode = XKeysymToKeycode(d,xkcode);
+        cout<<"KEYCODE for "<<xkcode<< " => XKeysymToKeycode = "<< keycode<<endl;
+                        //int keycode         = XKeysymToKeycode(d,65361); //Vkleft ok
+                        //int keycode         = XKeysymToKeycode(d,XK_K);// OK
+                        //keycode=65361; LEFT ne marche pas                        
+                        //keycode=107; K => error
+                        //keycode=65430
                         Window          grab_window     =  root;
                         Bool            owner_events    = False;
                         int             pointer_mode    = GrabModeAsync;

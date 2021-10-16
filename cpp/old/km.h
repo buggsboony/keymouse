@@ -25,14 +25,9 @@ bool verboz=false;
 short verbozVal=(short)verboz;
 
 //Key states :
-//115 = S ; 
 //string controller_keys_TOR="65507,65515,65513"; //Controller keys TOR :    Ctrl+ Win + Alt
-string sVk_Alt_L="65513";
-string sVk_Ctrl_L="65507";
-string sVk_Meta="65515";
-//string controller_keys_TOR=sVk_Meta+","+sVk_Ctrl_L+","+sVk_Alt_L; //< + ctrl LEft
-string controller_keys_TOR=sVk_Alt_L+",60"; // Alt + <   (Works for Cinnamon)
-int vk_speed_TOR=115; // 
+string controller_keys_TOR="60,65513"; //
+int vk_speed_TOR=65505; // Shift
 string controller_keys="65507,65515"; //default controller keys //Ctrl_L=65507  ctrl_r=65508//Meta key (windows key) = 65515
 int vk_speed=XK_Alt_L; // 65513 Alt Key  for more speed
 map<int,int>controllerKeys;
@@ -55,8 +50,8 @@ map<int,short>keystates;
 /*calcul de factoriel*/
 long long fact(long long n)
 {//cas particuliers: 0! et 1!
-    if((n==0)||(n==1)){return 1;}
-    return n*fact(n-1);
+if((n==0)||(n==1)){return 1;}
+return n*fact(n-1);
 }
 
 // // Utilisation :  get all combinations for modiders masks
@@ -117,67 +112,32 @@ map<int,int> getModifierComb(vector<int> vlist)
 //vector<int> modifiersList={ ControlMask,ShiftMask,AltMask,NumLockMask,CapsLockMask,MetaMask};  //CapsLock and Meta not working
 vector<int> modifiersList={ ControlMask,ShiftMask,AltMask,NumLockMask};
 //grab key regardeless of modifiers
-// int xGrabIndependantKey_auto(int realKcode, Display*d, int keycode, unsigned int window,string grab_or_ungrab="grab")
-// {    
-//     int r; bool silent = false;
-//     unsigned int    modifiers;           
-//     //XUngrabKey(d, keycode, AnyModifier,window);    
-//     map<int,int> allModifiers = getModifierComb(modifiersList);    
-//     allModifiers[0]=0;//Add the none modifiers
-    
-//     if(grab_or_ungrab=="grab")
-//     {
-//         if(!silent) cout<<"Grab the key "<<keycode<<endl;
-//         for(auto mm : allModifiers)
-//         {    
-//             modifiers = mm.second;
-//             r=XGrabKey(d, keycode, modifiers, window, false, GrabModeAsync, GrabModeAsync);
-//             if(!silent) cout<<"XGrabKey "<< keycode<<" mod["<<modifiers<<"]=>"<<r<<endl;
-//         }//next modifier
-//         if(realKcode==60)
-//         {
-//             cout<<"Alt+VerrNum:"<<(Mod1Mask| Mod2Mask)<<endl; //24
-//             //puts("die in indep");exit(23);
-//         }
-//     }else if(grab_or_ungrab=="ungrab")
-//     {
-//         puts("ungrab disabled"); return -2;
-//          if(!silent) cout<<"UnGrab the key "<<keycode<<endl;
-//         for(auto mm : allModifiers)
-//         {    
-//             modifiers = mm.second;
-//             r=XUngrabKey(d, keycode, modifiers, window);
-//              if(!silent) cout<<"XUnGrabKey mod"<<modifiers<<"=>"<<r<<endl;
-//         }//next modifier
-//     }
-//    return r;
-// }//grab Independant Key
-
-
-
-int xGrabIndependantKey(int realKcode, Display*d, int keycode, unsigned int window,string grab_or_ungrab="grab")
+int xGrabIndependantKey(Display*d, int keycode, unsigned int window,string grab_or_ungrab="grab")
 {    
-    int r; bool silent = false;
+    int r; bool silent = true;
     unsigned int    modifiers;           
-    //XUngrabKey(d, keycode, AnyModifier,window);    
-    map<int,int> allModifiers = getModifierComb(modifiersList);    
-    allModifiers[0]=0;//Add the none modifiers
+    XUngrabKey(d, keycode, AnyModifier,window);    
+    map<int,int> allModifiers = getModifierComb(modifiersList);
+    allModifiers[0]=0;//Add none modifiers
     
     if(grab_or_ungrab=="grab")
     {
         if(!silent) cout<<"Grab the key "<<keycode<<endl;
-   
-            modifiers = 0;
-            r=XGrabKey(d, keycode, modifiers, window, false, GrabModeAsync, GrabModeAsync);
-            if(!silent) cout<<"XGrabKey "<< keycode<<" mod["<<modifiers<<"]=>"<<r<<endl;  
-
-            modifiers = Mod2Mask;
-            r=XGrabKey(d, keycode, modifiers, window, false, GrabModeAsync, GrabModeAsync);
-            if(!silent) cout<<"XGrabKey "<< keycode<<" mod["<<modifiers<<"]=>"<<r<<endl;  
-
-               modifiers = Mod2Mask | Mod1Mask; //+Alt
-            r=XGrabKey(d, keycode, modifiers, window, false, GrabModeAsync, GrabModeAsync);
-            if(!silent) cout<<"XGrabKey "<< keycode<<" mod["<<modifiers<<"]=>"<<r<<endl;  
+        for(auto mm : allModifiers)
+        {    
+            modifiers = mm.second;
+            r=XGrabKey(d, keycode, modifiers, window, True, GrabModeAsync, GrabModeAsync);
+            if(!silent) cout<<"XGrabKey mod"<<modifiers<<"=>"<<r<<endl;
+        }//next modifier
+    }else if(grab_or_ungrab=="ungrab")
+    {
+         if(!silent) cout<<"UnGrab the key "<<keycode<<endl;
+        for(auto mm : allModifiers)
+        {    
+            modifiers = mm.second;
+            r=XUngrabKey(d, keycode, modifiers, window);
+             if(!silent) cout<<"XUnGrabKey mod"<<modifiers<<"=>"<<r<<endl;
+        }//next modifier
     }
    return r;
 }//grab Independant Key
@@ -243,31 +203,14 @@ void grabKeys(string grab_or_ungrab="grab")
         cout<<"keyGrabbed="<<keysGrabbed<<", grabKeys("<<grab_or_ungrab<<")"<<endl;         
     }
     //KeyCode kc=  XKeysymToKeycode(d,  XK_A);
- 
     for(auto mKstate : keystates)
     {
-        int kc=mKstate.first;
+        KeyCode kc=mKstate.first;
         int ksysk = XKeysymToKeycode(d,kc);
-        cout<<"xGrabIndependantKey kc="<<(int)kc<<"=>symToKey=>"<<(int)ksysk<<endl;
-
-        // if(kc==60)
-        // {
-        //     int modifiers=0;
-        //             // modifiers = AnyModifier;
-        //                         XGrabKey(d, ksysk, modifiers, rootWindow, false, GrabModeAsync, GrabModeAsync);
-        //                         modifiers= Mod2Mask; //Vernum
-        //                         XGrabKey(d, ksysk, modifiers, rootWindow, false, GrabModeAsync, GrabModeAsync);
-
-        //                          modifiers= Mod2Mask | Mod1Mask; //Vernum + alt
-        //                         XGrabKey(d, ksysk, modifiers, rootWindow, false, GrabModeAsync, GrabModeAsync);
-        //                         puts("Woauwh  Grab !!! ");
-        //                         break;
-        // }
-
-        xGrabIndependantKey(kc,d, ksysk ,rootWindow, grab_or_ungrab);    
+        //cout<<"kc="<<kc<<"=>symToKey=>"<<ksysk<<endl;
+        xGrabIndependantKey(d, ksysk ,rootWindow, grab_or_ungrab);    
         usleep(1);
     }
-    //puts("after grab test");exit(23);
     if(grab_or_ungrab=="grab")
         keysGrabbed=true;
     else 
@@ -314,15 +257,15 @@ void updateKeyState(int keycode, short state)
     }else
     {
         if(verboz>3) puts("------------------- Controller keys are no longer together down");
-        puts("Disable ungrab while debugging");
-        // lockGrabKeys=false;
-        // if( keysGrabbed){
-        //                 //change cursor             
-        //     subsituteCursor = XCreateFontCursor(dedicatedDpy, xc_default );
-        //     XDefineCursor(dedicatedDpy, rootWindow, subsituteCursor);    
+        lockGrabKeys=false;
+        if( keysGrabbed){
+                        //change cursor             
+            subsituteCursor = XCreateFontCursor(dedicatedDpy, xc_default );
+            XDefineCursor(dedicatedDpy, rootWindow, subsituteCursor);    
 
-        //     unGrabKeys(); //only once if not already ungrabbed
-        // }
+
+             unGrabKeys(); //only once if not already ungrabbed
+        }
     }
 
     if( keysGrabbed)
@@ -446,7 +389,7 @@ void mouseAction(int keycode, short state)
 
 //Init function
 void initApp()
-{    
+{
     //retreive list of controller keys 
     if(modeTOR)
     {
@@ -469,7 +412,6 @@ void initApp()
         cout<<"Filling keystates["<<kcode<<"] with -1 "<<endl;
         keystates[kcode]=-1;
     }
-
     // add fill speed key    
     keystates[vk_speed]=-1;
     // add directionnal keys
@@ -487,12 +429,7 @@ void initApp()
 
     //default freq is speed slow  
     freq=speed_slow;  
-    
-    // for(auto kstate : keystates)
-    // {
-    //     cout<<kstate.first<<endl;
-    // }
-    //puts("debug initApp"); exit(340);
+
 
     //Catch X errors! 
     XSetErrorHandler( x_error_handler );
@@ -514,13 +451,11 @@ void unInitApp(string from="main")
     }
     //Ungrab if keyboard was grabbed
     if(keysGrabbed){ unGrabKeys();}         
-}//unInitApp
+}
 
 
 
-bool hasBeenDown=false;
-int rectCnt = 0;
-long lastDownTime=0,lastDownTimeQ=0;
+
 //Thread Job, loop
 void *_keyStateLoop(void * arg)
 {
@@ -531,30 +466,7 @@ void *_keyStateLoop(void * arg)
     {        
         dpy=dedicatedDpy;
         if(dpy==NULL) { printlnErr("_keyStateLoop => dpy is null !");  break;    }
-
-        //always run :
-        if (keystates[60] == 1)
-        {           
-            if(!hasBeenDown)
-            {
-                rectCnt++;
-
-                lastDownTimeQ = lastDownTime;
-                lastDownTime = getTime();
-                long diff= lastDownTime-lastDownTimeQ;
-                cout<<"diff="<<diff<<endl;
-                cout<<"Hello wORD: "<<rectCnt<<endl;
-                hasBeenDown=true;
-            }            
-        }else if(hasBeenDown)
-        {
-            puts("released after beeing down");
-            hasBeenDown=false;            
-        }
-
-
         //puts("In loop");
-        //--------------------------- protected by keysGrabbed -------------------
         if (keysGrabbed)
         {
             // //retrieve mouse position    
@@ -588,7 +500,7 @@ void *_keyStateLoop(void * arg)
             if (keystates[vk_left] == 1)
             {
                 mx -= pas;
-                changes++;closek++;        
+                changes++;closek++;
             }
             if (keystates[vk_right] == 1)
             {
@@ -611,7 +523,7 @@ void *_keyStateLoop(void * arg)
                 break;
             }
         } //do things only if in grabbed state
- 
+
         usleep(2+freq); //Always sleep
     }//wend
 
