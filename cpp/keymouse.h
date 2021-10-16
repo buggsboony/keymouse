@@ -24,6 +24,13 @@ int pas = 1; //step move
 bool verboz=false;
 short verbozVal=(short)verboz;
 
+#define K_CTRL 65507
+#define K_META 65515
+#define K_ALT 65513
+
+
+#define MIN_TIME 300  //Min ticks count between trigger tap
+bool triggered = false;
 //Key states :
 //115 = S ; 
 //string controller_keys_TOR="65507,65515,65513"; //Controller keys TOR :    Ctrl+ Win + Alt
@@ -34,7 +41,9 @@ string sVk_Meta="65515";
 string controller_keys_TOR=sVk_Alt_L+",60"; // Alt + <   (Works for Cinnamon)
 int vk_speed_TOR=115; // 
 string controller_keys="65507,65515"; //default controller keys //Ctrl_L=65507  ctrl_r=65508//Meta key (windows key) = 65515
+
 int vk_speed=XK_Alt_L; // 65513 Alt Key  for more speed
+
 map<int,int>controllerKeys;
 int vk_up= 65362;
 int vk_left=  65361 ;
@@ -51,6 +60,74 @@ int vk_mouse_3=65459;    //vk_mouse_3 Num_3=65459   (Right Click)
 int vk_mouse_right=65435; //65366 PageDown or 65435: Num_3 without Numlock activated!
 
 map<int,short>keystates;
+
+// ******************** Class Memory Key
+class MemoryKey
+{
+    public :
+    bool hasBeenDown=false;
+    int cnt = 0;
+    long diff=999999999; 
+    int key;
+    int MIN_DIFF = MIN_TIME;
+    long lastDownTime=0,lastDownTimeQ=0;
+    bool jackPot = false;
+
+    MemoryKey(int keycode)
+    {
+        init();
+        key=keycode;
+    }
+
+    void init()
+    {
+            hasBeenDown=false;
+            cnt = 0;
+            lastDownTime=0,lastDownTimeQ=0;
+    }  
+    
+    bool onDown()
+    {
+            if(!hasBeenDown)
+            {
+                cnt++;
+                lastDownTimeQ = lastDownTime;
+                lastDownTime = getTime();
+                diff= lastDownTime-lastDownTimeQ;
+                 cout<<"diff="<<diff<<endl;
+                // cout<<"Hello wORD: "<<cnt<<endl;
+                hasBeenDown=true;
+
+                if( (diff<MIN_DIFF)  )
+                {
+                    cout<<"JackPot!!!"<<endl;
+                    jackPot=true;
+                    return true;
+                }   
+            }  
+            jackPot=false;
+            return false;          
+    } 
+
+    void onUp()
+    {
+            if(hasBeenDown)
+            {               
+                hasBeenDown=false;
+            }            
+    }   
+};//MemoryKey
+
+//Init memory keys 
+MemoryKey mKeyCtrl = MemoryKey(K_CTRL);
+MemoryKey mKeyMeta = MemoryKey(K_META);
+
+
+
+
+
+
+
 
 /*calcul de factoriel*/
 long long fact(long long n)
@@ -460,8 +537,7 @@ void initApp()
         cout<<"Adding kcode:"<<kcode<<endl;
         controllerKeys[controllerKeys.size()]=kcode;        
     }//next string keycode
-
-
+    
     // //Fill map with controller keys
     for (size_t i = 0; i < controllerKeys.size(); i++)
     {
@@ -517,10 +593,7 @@ void unInitApp(string from="main")
 }//unInitApp
 
 
-
-bool hasBeenDown=false;
-int rectCnt = 0;
-long lastDownTime=0,lastDownTimeQ=0;
+        short cntDownInTime=1;
 //Thread Job, loop
 void *_keyStateLoop(void * arg)
 {
@@ -532,25 +605,39 @@ void *_keyStateLoop(void * arg)
         dpy=dedicatedDpy;
         if(dpy==NULL) { printlnErr("_keyStateLoop => dpy is null !");  break;    }
 
-        //always run :
-        if (keystates[60] == 1)
-        {           
-            if(!hasBeenDown)
-            {
-                rectCnt++;
+        //// this will always run :
+        // if (keystates[mKey60.key] == 1)
+        // {      
+        //     bool jackpot = mKey60.onDown();                                
+        //     if(jackpot)
+        //     {
+        //         cout<<"JackPot cool!"<<endl;
+        //     }
+        // }else
+        // {
+        //      mKey60.onUp();
+        // }
 
-                lastDownTimeQ = lastDownTime;
-                lastDownTime = getTime();
-                long diff= lastDownTime-lastDownTimeQ;
-                cout<<"diff="<<diff<<endl;
-                cout<<"Hello wORD: "<<rectCnt<<endl;
-                hasBeenDown=true;
-            }            
-        }else if(hasBeenDown)
+
+        if (keystates[mKeyCtrl.key] == 1)
+        {      
+            if(mKeyCtrl.diff>MIN_TIME) { cntDownInTime=0; } //reset
+            bool jp = mKeyCtrl.onDown(); 
+            if(jp){ cntDownInTime++;
+                if(verboz) cout<<cntDownInTime<<" mKeyCtrl OK"<<endl;
+                if(cntDownInTime>=3)
+                {
+                    triggered=true;
+                    cntDownInTime=0;
+                    cout<<"--- TRIGGERED OK  ---"<<endl;
+                }
+            }
+        }else
         {
-            puts("released after beeing down");
-            hasBeenDown=false;            
+             mKeyCtrl.onUp();            
         }
+
+     
 
 
         //puts("In loop");
