@@ -1,7 +1,7 @@
 #include "h/tools.h" 
 #include "h/xtools.h"
 #include "h/iotools.h" 
-
+#include <X11/cursorfont.h>
 string appCodeName="keymouse", version="v1.3.113"; //vX.d.11m
 string appTitle="keyMouse";
 string configFileBaseName ="keymouse.conf";
@@ -13,13 +13,16 @@ bool canExit = false, softExit=false;
 Display *d , *dedicatedDpy= NULL; //display
 Window xDefaultRootWin,rootWindow; //root Window
 
+int xc_cursor = XC_bogosity;
+int xc_default =  XC_hand2;
 
 bool modeTOR = true; //mode Tout Ou Rien
-
+int subsituteCursor = 0; //cursor while locked
 int speed_boost=200, speed_slow=2800;
 int freq=speed_slow;
 int pas = 1; //step move
 bool verboz=false;
+short verbozVal=(short)verboz;
 
 //Key states :
 string controller_keys_TOR="65507,65515,65513"; //Controller keys TOR :    Ctrl+ Win + Alt
@@ -193,7 +196,7 @@ short checkcontrollerKeys()
 
 bool keysGrabbed = false;
 void grabKeys(string grab_or_ungrab="grab")
-{    
+{            
     if(verboz)
     {
         cout<<"keyGrabbed="<<keysGrabbed<<", grabKeys("<<grab_or_ungrab<<")"<<endl;         
@@ -237,14 +240,27 @@ void updateKeyState(int keycode, short state)
 
     if( checkcontrollerKeys() ==1 )
     {
-        if(verboz) puts("-------------------  All controller keys DOWN !");
+        if(verbozVal>3) puts("++++++++++++++++++++++++++++++++++++++++  All controller keys DOWN !");
         lockGrabKeys=true;
-        if( !keysGrabbed) grabKeys();  //only once if not already grabed
+        if( !keysGrabbed){
+            //change cursor             
+            subsituteCursor = XCreateFontCursor(dedicatedDpy, xc_cursor );
+            XDefineCursor(dedicatedDpy, rootWindow, subsituteCursor);    
+
+            grabKeys();  //only once if not already grabed
+        }
     }else
     {
-        if(verboz) puts("-------------------  All controller keys RELEASED!");
+        if(verboz>3) puts("------------------- Controller keys are no longer together down");
         lockGrabKeys=false;
-        if( keysGrabbed) unGrabKeys(); //only once if not already ungrabbed
+        if( keysGrabbed){
+                        //change cursor             
+            subsituteCursor = XCreateFontCursor(dedicatedDpy, xc_default );
+            XDefineCursor(dedicatedDpy, rootWindow, subsituteCursor);    
+
+
+             unGrabKeys(); //only once if not already ungrabbed
+        }
     }
 
     if( keysGrabbed)

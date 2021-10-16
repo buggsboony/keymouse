@@ -12,10 +12,14 @@
 
 using namespace std;
 
-
 #include "keymouse.h"
 
-
+//Catch segmentation fault error :
+void segfault_sigaction(int signal, siginfo_t *si, void *arg)
+{
+    printf("Caught segfault at address %p\n", si->si_addr);
+    exit(1);
+}
 
 void signalHandlerClose(int sig)
 {
@@ -28,6 +32,18 @@ void signalHandlerClose(int sig)
 
 int main(int argc, char **argv)
 {
+    //Prepare sigaction segmentation fault 
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(struct sigaction));
+    sigemptyset(&sa.sa_mask);
+    sa.sa_sigaction = segfault_sigaction;
+    sa.sa_flags   = SA_SIGINFO;
+    sigaction(SIGSEGV, &sa, NULL);
+
+
+
+
+
   string help="     Options: \n"
  "\n\t-h, --help                      Displays help on commandline options.                                    "
  "\n\t -v, --version                  Displays version information.                                           "
@@ -37,11 +53,12 @@ int main(int argc, char **argv)
  "\n\t--reset, --reset-config         Drop and build config file                                               "
  "\n\t--config, --open-config         Open config file   "
  "\n\t--click, --test-click           Test: sends mouse events after 2sec, down for 1 sec then release   "
- "\n\t--verbose, --verboz             Logs                                          "
+ "\n\t--verbose N, --verboz N           Logs                                         "
 ;
     for (size_t i = 0; i < argc; i++)
     {
         string arg=argv[i];
+        string sNextVal="";
         if(arg=="--printkey")
         {
             printKeyMode=true;
@@ -74,10 +91,19 @@ int main(int argc, char **argv)
         
         if(  (arg=="--verbose") ||  (arg=="--verboz") )
         {
-            verboz=true;
+            verboz=true;                           
+            if(argc>i+1)
+            {       
+                sNextVal=trimStr(argv[i+1]);
+                if(sNextVal.length()>0)
+                {
+                    verbozVal= strToInt(sNextVal);
+                }     
+            }          
         }
         
     }//next arg
+
 
 
     //Greetings, version and name
@@ -177,10 +203,11 @@ initApp();
 
 if(testClick)
 {
-    cout<<"Test click will start"<<endl;
+    short nSec = 4;
+    cout<<"Test click will start (mouse down for "<<nSec<<"Secs)"<<endl;
       sleep(2);
            mouseDown(1,dedicatedDpy);        
-            sleep(1);
+            sleep(nSec);
                 mouseUp(1,dedicatedDpy);
             cout<<"Test click stopped"<<endl;            
     cout<<"Done"<<endl;
@@ -204,13 +231,20 @@ if(testClick)
         XNextEvent(d, &ev);
         switch (ev.type)
         {
+            case FocusIn:
+             if(verboz) {
+                     printf ("Focus IN!\n");                    
+                }
             case FocusOut:
                 if(verboz) {
                      printf ("Focus changed!\n");
                      printf ("Old focus is %d\n", (int)curFocus);
                 }
                 if (curFocus != rootWindow)
+                {                         
                     XSelectInput(d, curFocus, 0);
+                }
+                
                 XGetInputFocus (d, &curFocus, &revert);
                 if(verboz) printf ("New focus is %d\n", (int)curFocus);
                 if (curFocus == PointerRoot)
@@ -219,7 +253,7 @@ if(testClick)
                 //XGrabKey(d, XKC_COMMA, 0, curFocus, True, GrabModeAsync, GrabModeAsync);
                 XSelectInput(d, curFocus, KeyPressMask|KeyReleaseMask|FocusChangeMask);
                 break;
-            
+
             case KeyRelease: 
                 len = XLookupString(&ev.xkey, buf, 16, &ks, &comp);
                 if(printKeyMode)
