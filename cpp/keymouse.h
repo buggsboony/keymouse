@@ -18,7 +18,7 @@ int xc_default =  XC_hand2;
 
 bool modeTOR = true; //mode Tout Ou Rien
 int subsituteCursor = 0; //cursor while locked
-int speed_boost=200, speed_slow=2800;
+int speed_boost=200, speed_slow=2800, speed_idle=15002;
 int freq=speed_slow;
 int pas = 1; //step move
 bool verboz=false;
@@ -31,6 +31,7 @@ short verbozVal=(short)verboz;
 #define K_END 65367
 #define K_PAGEDOWN 65366
 #define K_NUM_1 65457
+#define K_ESC 65307
 
 #define MIN_TIME 300  //Min ticks count between trigger tap
 bool triggered = false;
@@ -52,6 +53,8 @@ int vk_up= 65362;
 int vk_left=  65361 ;
 int vk_down= 65364;
 int vk_right= 65363;
+int vk_idle= K_ESC; //Press This key to stop grabbing
+
 bool lockGrabKeys = false;
 //Keys, for Mouse Buttons events
 int vk_mouse_left=K_END; //vk_mouse_left Ctrl_r(65508) or END(65367) default for convinient click, for right click, you might use thre dedicated button for that
@@ -100,7 +103,7 @@ class MemoryKey
                 lastDownTimeQ = lastDownTime;
                 lastDownTime = getTime();
                 diff= lastDownTime-lastDownTimeQ;
-                 cout<<"diff="<<diff<<endl;
+                //cout<<"diff="<<diff<<endl;
                 // cout<<"Hello wORD: "<<cnt<<endl;
                 hasBeenDown=true;
 
@@ -115,12 +118,14 @@ class MemoryKey
             return false;          
     } 
 
-    void onUp()
+    bool onUp()
     {
             if(hasBeenDown)
             {               
                 hasBeenDown=false;
+                return true;
             }            
+            return false;
     }   
 };//MemoryKey
 
@@ -128,8 +133,10 @@ class MemoryKey
 MemoryKey mKeyTrigg = MemoryKey(vk_trigg);
 MemoryKey mKeyMeta = MemoryKey(K_META);
 
-
-
+MemoryKey mKeyLeft = MemoryKey(vk_left);
+MemoryKey mKeyRight = MemoryKey(vk_right);
+MemoryKey mKeyUp = MemoryKey(vk_up);
+MemoryKey mKeyDown = MemoryKey(vk_down);
 
 
 
@@ -261,6 +268,17 @@ int xGrabIndependantKey(int realKcode, Display*d, int keycode, unsigned int wind
             // modifiers = NumLockMask | Mod1Mask; //+Alt
             // r=XGrabKey(d, keycode, modifiers, window, false, GrabModeAsync, GrabModeAsync);
             // if(!silent) cout<<"XGrabKey "<< keycode<<" mod["<<modifiers<<"]=>"<<r<<endl;  
+    }else if(grab_or_ungrab=="ungrab")
+    {
+        if(!silent) cout<<"UnGrab the key "<<keycode<<endl;
+        
+                    modifiers = 0;
+            r=XUngrabKey(d, keycode, modifiers, window);
+            if(!silent) cout<<"XGrabKey "<< keycode<<" mod["<<modifiers<<"]=>"<<r<<endl;  
+
+            modifiers = NumLockMask;
+            r=XUngrabKey(d, keycode, modifiers, window);
+            if(!silent) cout<<"XGrabKey "<< keycode<<" mod["<<modifiers<<"]=>"<<r<<endl;                
     }
    return r;
 }//grab Independant Key
@@ -356,10 +374,32 @@ void grabKeys(string grab_or_ungrab="grab")
     else 
         keysGrabbed=false;
 }
+
+
 void unGrabKeys()
 {    
     grabKeys("ungrab");
 }//unGrabKeys
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -431,8 +471,22 @@ void updateKeyState(int keycode, short state)
         {
             closek++;
         }
-        if(closek>=3) { softExit = true; //will exit main loop event
+        if(closek>=3) 
+        { 
+            
+            softExit = true; //will exit main loop event
             canExit=true; //exit thread
+        }
+
+
+        if (keystates[vk_idle] == 1)
+        {
+             //ungrab all keys and go to sleep freq really big
+             if(keysGrabbed)
+             {
+                  unGrabKeys();
+                  freq=speed_idle;
+             }  
         }
     }
 }//updateKeyState
@@ -538,9 +592,17 @@ void mouseAction(int keycode, short state)
 //Init function
 void initApp()
 {   
+    //enable memory keys on dirctional
+     mKeyLeft = MemoryKey(vk_left);
+ mKeyRight = MemoryKey(vk_right);
+ mKeyUp = MemoryKey(vk_up);
+ mKeyDown = MemoryKey(vk_down);
+
+
     // add directionnal keys 
     trigg_keystates[vk_trigg]=-1;
     // add directionnal keys
+    keystates[vk_idle]=-1;
     keystates[vk_left]=-1;
     keystates[vk_up]=-1;
     keystates[vk_down]=-1;
@@ -549,9 +611,9 @@ void initApp()
     keystates[vk_mouse_left]=-1;
     keystates[vk_mouse_right]=-1;
     keystates[vk_alternative_mouse_left]=-1;
-    keystates[vk_mouse_1]=-1;
-    keystates[vk_mouse_2]=-1;
-    keystates[vk_mouse_3]=-1;
+    // keystates[vk_mouse_1]=-1;
+    // keystates[vk_mouse_2]=-1;
+    // keystates[vk_mouse_3]=-1;
 
     //default freq is speed slow  
     freq=speed_slow;  
@@ -585,12 +647,13 @@ void unInitApp(string from="main")
 }//unInitApp
 
 
-        short cntDownInTime=1;
+short cntDownInTime=1;
+short cnts[4]={0,0,0,0};
 //Thread Job, loop
 void *_keyStateLoop(void * arg)
 {
     int mx,my;
-    short closek,changes = 0;
+    short nk, closek,changes = 0;
     Display * dpy;
     while(!canExit)    
     {        
@@ -609,11 +672,13 @@ void *_keyStateLoop(void * arg)
                     triggered=true;
                     cntDownInTime=0;
                     cout<<"--- TRIGGERED OK  ---"<<endl;                   
-                    if( !keysGrabbed){  keysGrabbed=true;
-                        grabKeys();  //only once if not already grabbed
+                    if( !keysGrabbed){  
+                        freq=speed_slow; //from idle to normal
+                        grabKeys();  //only once if not already grabbedkeysGrabbed=true;
+                        triggered=false;
                     }
                 }
-            }
+            }//jackpot
         }else
         {
              mKeyTrigg.onUp();            
@@ -634,36 +699,121 @@ void *_keyStateLoop(void * arg)
                 printf("MousePos is (%d,%d)      \r", mx, my);
                 fflush(stdout);
             }
-            //Change speed :
-            // if( keystates[vk_speed]==1){
-            //     //printlnCool("Speed up!");
-            //     freq=speed_boost;
-            // }else{ freq = speed_slow;
-            //     //cout<<"Speeed slow ----------------------------------------------"<<endl;
-            // }
+            
+
 
             changes = 0; closek=0;
+            
+            bool jpx=false; nk=0;  //Change speed
             //Change mouse mosition (Move mouse) :
+            nk=0;
             if (keystates[vk_up] == 1)
             {
+                jpx=mKeyUp.onDown();                
+                if(jpx){  cnts[nk]++;
+                 cout<<"***************    for "<<nk<<" "<<cnts[nk]<<endl;
+                    if(cnts[nk]>=1)
+                    {                        
+                        cnts[nk]=0; //reset
+                        cout<<"--- JACKPOT for "<<nk<<" "<<cnts[nk]<<endl;                                        
+                        freq=speed_boost+nk; //identify the sender
+                    }
+                }//jackpot
+
                 my -= pas;
                 changes++;
+            }else
+            {
+                if( mKeyUp.onUp() ) //if released after being up
+                {
+                    if(freq==speed_boost+nk)
+                    {
+                        freq=speed_slow;
+                    }
+                }
             }
+
+
+            nk=1;
             if (keystates[vk_down] == 1)
             {
+                jpx=mKeyDown.onDown();                
+                if(jpx){  cnts[nk]++;
+                      cout<<"***************    for "<<nk<<" "<<cnts[nk]<<endl;
+                    if(cnts[nk]>=1)
+                    {                        
+                        cnts[nk]=0; //reset
+                        cout<<"--- JACKPOT for "<<nk<<" "<<cnts[nk]<<endl;                                        
+                        freq=speed_boost+nk;
+                    }
+                }//jackpot
                 my += pas;
                 changes++; closek++;
+            }else
+            {
+                if( mKeyDown.onUp() ) //if released after being up
+                {
+                    if(freq==speed_boost+nk)
+                    {
+                        freq=speed_slow;
+                    }
+                }
             }
+            
+            nk=2;
             if (keystates[vk_left] == 1)
             {
+                jpx=mKeyLeft.onDown();                
+                if(jpx){  cnts[nk]++;
+                 cout<<"***************    for "<<nk<<" "<<cnts[nk]<<endl;
+                    if(cnts[nk]>=1)
+                    {                        
+                        cnts[nk]=0; //reset
+                        cout<<"--- JACKPOT for "<<nk<<" "<<cnts[nk]<<endl;                                        
+                        freq=speed_boost+nk;
+                    }
+                }//jackpot
+
                 mx -= pas;
                 changes++;closek++;        
+            }else
+            {
+                if( mKeyLeft.onUp() ) //if released after being up
+                {
+                    if(freq==speed_boost+nk)
+                    {
+                        freq=speed_slow;
+                    }
+                }
             }
+            
+            nk=3;
             if (keystates[vk_right] == 1)
             {
+                jpx=mKeyRight.onDown();                
+                if(jpx){  cnts[nk]++;
+                    cout<<"***************    for "<<nk<<" "<<cnts[nk]<<endl;
+                    if(cnts[nk]>=2)
+                    {                        
+                        cnts[nk]=0; //reset
+                        cout<<"--- JACKPOT for "<<nk<<" "<<cnts[nk]<<endl;                                        
+                        freq=speed_boost+nk;
+                    }
+                }//jackpot
+
                 mx += pas;
                 changes++;closek++;
+            }else
+            {
+                if( mKeyRight.onUp() ) //if released after being up
+                {
+                    if(freq==speed_boost+nk)
+                    {
+                        freq=speed_slow;
+                    }
+                }
             }
+            
 
             if (changes > 0)
             {
