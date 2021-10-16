@@ -27,10 +27,14 @@ short verbozVal=(short)verboz;
 #define K_CTRL 65507
 #define K_META 65515
 #define K_ALT 65513
-
+#define K_CTRL_R 65508
+#define K_END 65367
+#define K_PAGEDOWN 65366
+#define K_NUM_1 65457
 
 #define MIN_TIME 300  //Min ticks count between trigger tap
 bool triggered = false;
+int vk_trigg = K_CTRL_R; //Hit this key 4 time quick
 //Key states :
 //115 = S ; 
 //string controller_keys_TOR="65507,65515,65513"; //Controller keys TOR :    Ctrl+ Win + Alt
@@ -40,7 +44,6 @@ string sVk_Meta="65515";
 //string controller_keys_TOR=sVk_Meta+","+sVk_Ctrl_L+","+sVk_Alt_L; //< + ctrl LEft
 string controller_keys_TOR=sVk_Alt_L+",60"; // Alt + <   (Works for Cinnamon)
 int vk_speed_TOR=115; // 
-string controller_keys="65507,65515"; //default controller keys //Ctrl_L=65507  ctrl_r=65508//Meta key (windows key) = 65515
 
 int vk_speed=XK_Alt_L; // 65513 Alt Key  for more speed
 
@@ -51,14 +54,17 @@ int vk_down= 65364;
 int vk_right= 65363;
 bool lockGrabKeys = false;
 //Keys, for Mouse Buttons events
-int vk_mouse_left=65508; //vk_mouse_left Ctrl_r(65508) or END(65367) default for convinient click, for right click, you might use thre dedicated button for that
-int vk_alternative_mouse_left=65367;
-bool vk_use_numpad=true; //ToDo, add to config
+int vk_mouse_left=K_END; //vk_mouse_left Ctrl_r(65508) or END(65367) default for convinient click, for right click, you might use thre dedicated button for that
+int vk_alternative_mouse_left=K_CTRL_R;
+
+//not used
+bool vk_use_numpad=false; //ToDo, add to config
 int vk_mouse_1 = 65457;  //vk_mouse_1 Num_1=65457      //can use num pad 1, 2 , 3 to control mouse buttons
 int vk_mouse_2=65458;    //vk_mouse_2  Num_2=65458   (Middle Click
 int vk_mouse_3=65459;    //vk_mouse_3 Num_3=65459   (Right Click)  
-int vk_mouse_right=65435; //65366 PageDown or 65435: Num_3 without Numlock activated!
+int vk_mouse_right=K_PAGEDOWN; //65366 PageDown or 65435: Num_3 without Numlock activated!
 
+map<int,short>trigg_keystates;
 map<int,short>keystates;
 
 // ******************** Class Memory Key
@@ -119,7 +125,7 @@ class MemoryKey
 };//MemoryKey
 
 //Init memory keys 
-MemoryKey mKeyCtrl = MemoryKey(K_CTRL);
+MemoryKey mKeyTrigg = MemoryKey(vk_trigg);
 MemoryKey mKeyMeta = MemoryKey(K_META);
 
 
@@ -248,13 +254,13 @@ int xGrabIndependantKey(int realKcode, Display*d, int keycode, unsigned int wind
             r=XGrabKey(d, keycode, modifiers, window, false, GrabModeAsync, GrabModeAsync);
             if(!silent) cout<<"XGrabKey "<< keycode<<" mod["<<modifiers<<"]=>"<<r<<endl;  
 
-            modifiers = Mod2Mask;
-            r=XGrabKey(d, keycode, modifiers, window, false, GrabModeAsync, GrabModeAsync);
+            modifiers = NumLockMask;
+            r=XGrabKey(d, keycode, modifiers, window, true, GrabModeAsync, GrabModeAsync);
             if(!silent) cout<<"XGrabKey "<< keycode<<" mod["<<modifiers<<"]=>"<<r<<endl;  
 
-               modifiers = Mod2Mask | Mod1Mask; //+Alt
-            r=XGrabKey(d, keycode, modifiers, window, false, GrabModeAsync, GrabModeAsync);
-            if(!silent) cout<<"XGrabKey "<< keycode<<" mod["<<modifiers<<"]=>"<<r<<endl;  
+            // modifiers = NumLockMask | Mod1Mask; //+Alt
+            // r=XGrabKey(d, keycode, modifiers, window, false, GrabModeAsync, GrabModeAsync);
+            // if(!silent) cout<<"XGrabKey "<< keycode<<" mod["<<modifiers<<"]=>"<<r<<endl;  
     }
    return r;
 }//grab Independant Key
@@ -367,6 +373,14 @@ void updateKeyState(int keycode, short state)
         // cout<<"mouseAction("<<keycode<<", state="<<state<<")"<<endl;
         // cout<<"count(keycode)="<<keystates.count(keycode)<<endl;
     }
+     //enable down or up for trigger keys
+    if(trigg_keystates.count(keycode)>0) //check if map contains the key "keycode"
+    {
+        int prevState= trigg_keystates[keycode];
+        trigg_keystates[keycode]=state;     
+    }
+
+    //enable down or up for keys
     if(keystates.count(keycode)>0) //check if map contains the key "keycode"
     {
         int prevState= keystates[keycode];
@@ -375,32 +389,32 @@ void updateKeyState(int keycode, short state)
     }
 
 
-    if( checkcontrollerKeys() ==1 )
-    {
-        if(verbozVal>3) puts("++++++++++++++++++++++++++++++++++++++++  All controller keys DOWN !");
-        lockGrabKeys=true;
-        if( !keysGrabbed){
-            //change cursor             
-            if(false)
-            {
-                subsituteCursor = XCreateFontCursor(dedicatedDpy, xc_cursor );
-                XDefineCursor(dedicatedDpy, rootWindow, subsituteCursor);    
-            }
-            grabKeys();  //only once if not already grabed
-        }
-    }else
-    {
-        if(verboz>3) puts("------------------- Controller keys are no longer together down");
-        puts("Disable ungrab while debugging");
-        // lockGrabKeys=false;
-        // if( keysGrabbed){
-        //                 //change cursor             
-        //     subsituteCursor = XCreateFontCursor(dedicatedDpy, xc_default );
-        //     XDefineCursor(dedicatedDpy, rootWindow, subsituteCursor);    
+    // if( checkcontrollerKeys() ==1 )
+    // {
+    //     if(verbozVal>3) puts("++++++++++++++++++++++++++++++++++++++++  All controller keys DOWN !");
+    //     lockGrabKeys=true;
+    //     if( !keysGrabbed){
+    //         //change cursor             
+    //         if(false)
+    //         {
+    //             subsituteCursor = XCreateFontCursor(dedicatedDpy, xc_cursor );
+    //             XDefineCursor(dedicatedDpy, rootWindow, subsituteCursor);    
+    //         }
+    //         grabKeys();  //only once if not already grabed
+    //     }
+    // }else
+    // {
+    //     if(verboz>3) puts("------------------- Controller keys are no longer together down");
+    //     puts("Disable ungrab while debugging");
+    //     // lockGrabKeys=false;
+    //     // if( keysGrabbed){
+    //     //                 //change cursor             
+    //     //     subsituteCursor = XCreateFontCursor(dedicatedDpy, xc_default );
+    //     //     XDefineCursor(dedicatedDpy, rootWindow, subsituteCursor);    
 
-        //     unGrabKeys(); //only once if not already ungrabbed
-        // }
-    }
+    //     //     unGrabKeys(); //only once if not already ungrabbed
+    //     // }
+    // }
 
     if( keysGrabbed)
     {
@@ -436,7 +450,7 @@ void mouseAction(int keycode, short state)
     }
  
     Display * dpy=d;
-    //Simulate Mouse Events :
+    // //Simulate Mouse Events :
     if(keycode == vk_mouse_left)  //Left Click from CTRL_r key
     { changes++;
         if(state==1)
@@ -523,34 +537,12 @@ void mouseAction(int keycode, short state)
 
 //Init function
 void initApp()
-{    
-    //retreive list of controller keys 
-    if(modeTOR)
-    {
-        controller_keys = controller_keys_TOR;
-        vk_speed = vk_speed_TOR; 
-    }
-    vector <string> slist = splitStr(controller_keys,',');
-    for (size_t i = 0; i < slist.size(); i++)
-    {
-        int kcode = strToInt( trimStr(slist[i]) );
-        cout<<"Adding kcode:"<<kcode<<endl;
-        controllerKeys[controllerKeys.size()]=kcode;        
-    }//next string keycode
-    
-    // //Fill map with controller keys
-    for (size_t i = 0; i < controllerKeys.size(); i++)
-    {
-        int kcode = controllerKeys[i];
-        cout<<"Filling keystates["<<kcode<<"] with -1 "<<endl;
-        keystates[kcode]=-1;
-    }
-
-    // add fill speed key    
-    keystates[vk_speed]=-1;
+{   
+    // add directionnal keys 
+    trigg_keystates[vk_trigg]=-1;
     // add directionnal keys
-    keystates[vk_up]=-1;
     keystates[vk_left]=-1;
+    keystates[vk_up]=-1;
     keystates[vk_down]=-1;
     keystates[vk_right]=-1;
     // add actions keys to the grab
@@ -606,35 +598,25 @@ void *_keyStateLoop(void * arg)
         if(dpy==NULL) { printlnErr("_keyStateLoop => dpy is null !");  break;    }
 
         //// this will always run :
-        // if (keystates[mKey60.key] == 1)
-        // {      
-        //     bool jackpot = mKey60.onDown();                                
-        //     if(jackpot)
-        //     {
-        //         cout<<"JackPot cool!"<<endl;
-        //     }
-        // }else
-        // {
-        //      mKey60.onUp();
-        // }
-
-
-        if (keystates[mKeyCtrl.key] == 1)
+        if (keystates[mKeyTrigg.key] == 1)
         {      
-            if(mKeyCtrl.diff>MIN_TIME) { cntDownInTime=0; } //reset
-            bool jp = mKeyCtrl.onDown(); 
+            if(mKeyTrigg.diff>MIN_TIME) { cntDownInTime=0; } //reset
+            bool jp = mKeyTrigg.onDown(); 
             if(jp){ cntDownInTime++;
                 if(verboz) cout<<cntDownInTime<<" mKeyCtrl OK"<<endl;
                 if(cntDownInTime>=3)
                 {
                     triggered=true;
                     cntDownInTime=0;
-                    cout<<"--- TRIGGERED OK  ---"<<endl;
+                    cout<<"--- TRIGGERED OK  ---"<<endl;                   
+                    if( !keysGrabbed){  keysGrabbed=true;
+                        grabKeys();  //only once if not already grabbed
+                    }
                 }
             }
         }else
         {
-             mKeyCtrl.onUp();            
+             mKeyTrigg.onUp();            
         }
 
      
@@ -653,12 +635,12 @@ void *_keyStateLoop(void * arg)
                 fflush(stdout);
             }
             //Change speed :
-            if( keystates[vk_speed]==1){
-                //printlnCool("Speed up!");
-                freq=speed_boost;
-            }else{ freq = speed_slow;
-                //cout<<"Speeed slow ----------------------------------------------"<<endl;
-            }
+            // if( keystates[vk_speed]==1){
+            //     //printlnCool("Speed up!");
+            //     freq=speed_boost;
+            // }else{ freq = speed_slow;
+            //     //cout<<"Speeed slow ----------------------------------------------"<<endl;
+            // }
 
             changes = 0; closek=0;
             //Change mouse mosition (Move mouse) :

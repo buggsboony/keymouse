@@ -63,7 +63,7 @@ int main ()
 //XSetErrorHandler( x_error_handler );
 
         unsigned int    modifiers       = ControlMask | ShiftMask ;
-        int xkcode = 60;
+        int xkcode = 65361; //LEFT = 65361
         int keycode = XKeysymToKeycode(d,xkcode);
         cout<<"KEYCODE for "<<xkcode<< " => XKeysymToKeycode = "<< keycode<<endl;
                         //int keycode         = XKeysymToKeycode(d,65361); //Vkleft ok
